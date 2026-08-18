@@ -426,11 +426,21 @@ export function mountStudio(host: HTMLElement): AppApi {
   // page's own chrome is most of the screen.
   let focus = false;
   let drawerOpen = false;
+  // The button lives on the desk itself, top right, where a fullscreen
+  // control is expected: icon, word, and the key. It is the one control that
+  // is not in the bench, because it is about the sheet, not the paint.
+  const FOCUS_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const focusBtn = el(
     "button",
-    { class: "btn", type: "button", "aria-pressed": "false", onclick: () => setFocus(!focus) },
-    "Focus"
+    {
+      class: "btn btn-primary focus-toggle",
+      type: "button",
+      "aria-pressed": "false",
+      title: "Focus: the sheet fills the window (F)",
+      onclick: () => setFocus(!focus),
+    }
   );
+  focusBtn.innerHTML = `${FOCUS_ICON}<span>Focus</span><kbd>F</kbd>`;
   const drawerBtn = el(
     "button",
     { class: "btn focus-tools", type: "button", "aria-pressed": "false", "aria-expanded": "false", onclick: () => setDrawer(!drawerOpen) },
@@ -449,8 +459,6 @@ export function mountStudio(host: HTMLElement): AppApi {
     focus = on;
     document.body.classList.toggle("is-focus", on);
     focusBtn.setAttribute("aria-pressed", String(on));
-    focusBtn.classList.toggle("is-active", on);
-    focusBtn.textContent = on ? "Exit focus" : "Focus";
     if (!on) setDrawer(false);
     // The canvas' box changes size in the same frame; the observer catches it,
     // but the ring's cached rect is stale until the next move.
@@ -463,6 +471,11 @@ export function mountStudio(host: HTMLElement): AppApi {
     if (e.key === "Escape" && focus) {
       if (drawerOpen) setDrawer(false);
       else setFocus(false);
+    }
+    const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
+    if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.altKey && !typing) {
+      e.preventDefault();
+      setFocus(!focus);
     }
   });
 
@@ -663,9 +676,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     el("button", { class: "btn", type: "button", onclick: () => sim.undo() }, "Undo"),
     saveBtn,
     el("button", { class: "btn", type: "button", onclick: exportPNG }, "Export PNG"),
-    confirmButton("Clear sheet", "Really clear?", () => sim.clearSheet()),
-    el("span", { class: "action-spacer" }),
-    focusBtn
+    confirmButton("Clear sheet", "Really clear?", () => sim.clearSheet())
   );
 
   // A box is a section on a desk and a collapsible on a phone, where the
@@ -703,7 +714,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     box("X-ray", false, "box-xray", xrayRow, xrayWhat, xrayRamp)
   );
 
-  const easel = el("div", { class: "easel" }, canvas, ring, hint);
+  const easel = el("div", { class: "easel" }, canvas, ring, hint, focusBtn);
   host.append(el("div", { class: "studio container" }, easel, actions, bench, focusBar));
 
   // ---- sheet sizing -------------------------------------------------------
