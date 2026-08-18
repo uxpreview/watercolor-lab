@@ -2,7 +2,9 @@
  *
  * This tool is EXP-041 in the Lab and is hosted on its own subdomain, so the
  * page does the work the site's /lab/<slug> route normally does: the trail
- * back up, the claim in display type, the lede, then the experiment itself.
+ * back up, the record voice (number, kind, state, then the stack), the claim
+ * in display type, the lede, the experiment, then bench notes. Same order,
+ * same tokens, same measure as Attention Lab (EXP-038).
  *
  * Colors, radii, easings and the measure come from src/tokens.css, a vendored
  * copy of the site's tokens that is never edited on this side.
@@ -109,40 +111,156 @@ label,
     transform: scale(1);
   }
 }
+/* The trail back, in the label voice: chase underline, arrow nudges. */
 .bar-back {
-  font-size: 13px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
   font-weight: 500;
-  text-transform: uppercase;
+  font-size: 12px;
   letter-spacing: 0.12em;
-  color: var(--muted);
-  text-decoration: none;
-}
-.bar-back:hover {
+  text-transform: uppercase;
   color: var(--accent-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bar-back::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform var(--dur-struct) var(--ease-expo);
+}
+.bar-back span {
+  transition: transform 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bar-back:hover::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+  .bar-back:hover span {
+    transform: translateY(-2px);
+  }
 }
 
-/* --- Intro -------------------------------------------------------------- */
-.intro {
-  padding-top: 34px;
-  padding-bottom: 8px;
+/* --- Type ------------------------------------------------------------- */
+/* The label voice: structural eyebrows only — the record line, section
+   headings, the trail back. Controls speak sentence case at 13px. */
+.label,
+.eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.intro h1 {
+.label-strong {
+  color: var(--strong);
+}
+/* The display size is capped lower than the site's hero, on purpose: this
+   page is a tool, and the sheet has to be reachable without scrolling. */
+.t-h1 {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(30px, 4vw, 44px);
-  letter-spacing: -0.025em;
-  line-height: 1.08;
+  font-size: clamp(44px, 6.6vw, 78px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
   color: var(--strong);
-  margin: 0 0 10px;
+  text-wrap: balance;
+  margin: 24px 0 0;
+  max-width: 16ch;
 }
-.lede {
-  max-width: 72ch;
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 3.8vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--strong);
+  text-wrap: balance;
   margin: 0;
-  color: var(--body-2);
+  max-width: 18ch;
 }
-.lede,
-.footnote {
+.t-lede {
+  font-size: clamp(18px, 1.6vw, 21px);
+  line-height: 1.55;
+  color: var(--body-2);
   text-wrap: pretty;
+  max-width: 58ch;
+  margin: 24px 0 0;
+}
+/* The wordmark dot: the site's one vermillion accent in display type. */
+.dot {
+  color: var(--accent-warm);
+}
+
+/* --- Experiment head ---------------------------------------------------- */
+.exp-head {
+  padding-top: 40px;
+}
+@media (min-width: 768px) {
+  .exp-head {
+    padding-top: 56px;
+  }
+}
+/* Record voice: number, kind, state, then a rule that runs out to the stack. */
+.exp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+.exp-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.exp-rule {
+  flex: 1;
+  min-width: 40px;
+  height: 1px;
+  background: var(--line);
+}
+.exp-stack {
+  display: none;
+}
+@media (min-width: 640px) {
+  .exp-stack {
+    display: block;
+  }
+}
+/* The masthead gives way on a laptop screen: between 640 and 950px tall the
+   type and the head padding stop scaling with width, so the sheet's top edge
+   stays in the first screen. Same rule as the other experiments. */
+@media (min-height: 640px) and (max-height: 950px) {
+  .t-h1 {
+    font-size: clamp(40px, 4.4vw, 60px);
+    margin-top: 18px;
+  }
+  .t-lede {
+    margin-top: 18px;
+  }
+  .exp-head {
+    padding-top: 32px;
+  }
+  .studio {
+    padding-top: 32px;
+  }
 }
 
 /* --- Studio ------------------------------------------------------------- */
@@ -150,9 +268,15 @@ label,
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 24px;
-  padding-top: 24px;
-  padding-bottom: 8px;
+  padding-top: 40px;
+  padding-bottom: 40px;
   align-items: start;
+}
+@media (min-width: 768px) {
+  .studio {
+    padding-top: 56px;
+    padding-bottom: 56px;
+  }
 }
 @media (min-width: 1080px) {
   .studio {
@@ -484,19 +608,84 @@ body.is-backlit .sheet {
   visibility: visible;
 }
 
-/* --- Footer ------------------------------------------------------------- */
-.studio-footer {
-  padding-top: 12px;
-  padding-bottom: 48px;
+/* --- Bench notes + footer --------------------------------------------- */
+.app-footer {
+  padding-top: 8px;
+  padding-bottom: 64px;
 }
-.footnote {
-  max-width: 84ch;
-  font-size: 13.5px;
-  color: var(--muted);
+.notes-title {
+  max-width: 16ch;
+}
+.notes {
+  margin: 32px 0 0;
+}
+.note-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.note-row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 768px) {
+  .note-row {
+    grid-template-columns: 220px 1fr;
+    gap: 40px;
+  }
+}
+.note-row dt {
+  padding-top: 3px;
+}
+.note-row dd {
   margin: 0;
+  max-width: 64ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--body);
 }
-.footnote a {
+.note-row dd a {
   color: var(--accent-ink);
+}
+.footer-credit {
+  margin: 36px 0 0;
+}
+/* The site's arrow link: chase underline, arrow nudges on hover. */
+.arrow-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.arrow-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform var(--dur-struct) var(--ease-expo);
+}
+.arrow-link span {
+  transition: transform 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .arrow-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+  .arrow-link:hover span {
+    transform: translateX(3px);
+  }
 }
 
 .gl-error {
@@ -510,11 +699,11 @@ body.is-backlit .sheet {
   .easel {
     padding: 10px;
   }
-  .intro {
-    padding-top: 22px;
+  .exp-head {
+    padding-top: 28px;
   }
   .studio {
-    padding-top: 14px;
+    padding-top: 28px;
     gap: 14px;
   }
   .tool-row {

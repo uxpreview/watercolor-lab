@@ -1,0 +1,78 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - link "Ryan McCarty." [ref=e4] [cursor=pointer]:
+      - /url: https://ryankm.com
+    - link "Back to the Lab" [ref=e5] [cursor=pointer]:
+      - /url: https://ryankm.com/lab
+      - text: Back to the Lab
+      - generic [ref=e6]: ↗
+  - main [ref=e7]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: EXP-039 · Vanilla JS · SVG · No build step
+        - heading [level=1] [ref=e12]:
+          - text: A sprinkler plan for
+          - emphasis [ref=e13]: your
+          - text: yard, not mine.
+        - paragraph [ref=e14]: Draw the lot, say what your spigot actually delivers, and this places the heads, sizes the nozzles to the shape of each piece of ground, packs the zones under your flow budget, routes the trenches around the house and prints a dig plan you can take to the store. It runs entirely in your browser — no account, no address, no server.
+      - heading "Start" [level=2] [ref=e15]
+      - generic [ref=e17]:
+        - button "Have a look first Open the example yard An invented 70 × 120 ft lot with a house, a drive, beds, a patio and a shed. Nothing real is modelled. Good for seeing what the auto-layout does before you draw anything. Open" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: Have a look first
+          - generic [ref=e20]: Open the example yard
+          - generic [ref=e21]: An invented 70 × 120 ft lot with a house, a drive, beds, a patio and a shed. Nothing real is modelled. Good for seeing what the auto-layout does before you draw anything.
+          - generic [ref=e22]: Open →
+        - generic [ref=e23]:
+          - generic [ref=e24]: Know your dimensions
+          - generic [ref=e25]: Start from a blank lot
+          - generic [ref=e26]: Enter the lot size and draw the yard on top of it.
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - generic [ref=e29]: Width
+              - spinbutton "Width" [ref=e30]: "70"
+            - generic [ref=e31]: ×
+            - generic [ref=e32]:
+              - generic [ref=e33]: Depth
+              - spinbutton "Depth" [ref=e34]: "120"
+            - generic [ref=e35]:
+              - generic [ref=e36]: Units
+              - combobox "Units" [ref=e37]:
+                - option "feet" [selected]
+                - option "metres"
+          - button "Create the lot" [ref=e38] [cursor=pointer]
+        - generic [ref=e39]:
+          - generic [ref=e40]: Have a picture of it
+          - generic [ref=e41]: Trace your own image
+          - generic [ref=e42]: A screenshot of a satellite view, a survey, a plot plan, a sketch on graph paper. You set the scale by clicking two points you know the distance between. The image is read straight off your disk and never uploaded.
+          - generic [ref=e43] [cursor=pointer]: Choose an image
+      - heading "How it works" [level=2] [ref=e44]
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - heading "1 · Size the nozzle to the shape" [level=3] [ref=e48]
+          - paragraph [ref=e49]: The tool measures the largest circle that fits inside each piece of ground — the real "how wide is this" — rather than its area. A 2,000 sq ft lawn and a 2,000 sq ft side strip want completely different heads, and area alone cannot tell them apart. Wide open ground gets gear rotors, ordinary lawns get rotary nozzles, narrow strips get fixed sprays.
+        - generic [ref=e50]:
+          - heading "2 · Ring the edge, fill the middle" [level=3] [ref=e51]
+          - paragraph [ref=e52]: "Heads go on the corners first, with the arc matched to the interior angle and aimed down the bisector, then along the edges as half circles facing in, then on a triangular lattice wherever the perimeter ring cannot reach. Spacing is head-to-head: every head throws far enough to hit its neighbour. That looks like absurd overlap on paper and it is the entire trick — a single head puts down most of its water close in, so anything less leaves dry rings you cannot fix by turning the water up."
+        - generic [ref=e53]:
+          - heading "3 · Prune what earns nothing" [level=3] [ref=e54]
+          - paragraph [ref=e55]: The corner and edge passes double up, so a greedy pass tries removing each head cheapest-first and keeps the removal only if coverage holds and the head-to-head overlap barely moves. Set cover is NP-hard; a yard does not deserve a branch-and-bound. This typically drops a third of the placements.
+        - generic [ref=e56]:
+          - heading "4 · Pack zones under the flow budget" [level=3] [ref=e57]
+          - paragraph [ref=e58]:
+            - text: Your spigot is the constraint that decides everything. Heads are walked in a nearest-neighbour chain from the water source and packed greedily into zones at 85 % of measured flow, so a zone is a contiguous
+            - emphasis [ref=e59]: place
+            - text: in the yard rather than a scattering, and no valve is sized at 100 % of a bucket test.
+        - generic [ref=e60]:
+          - heading "5 · Trench as a spanning tree" [level=3] [ref=e61]
+          - paragraph [ref=e62]: "Each zone gets a minimum spanning tree from its nearest source out to every head, with edge weights multiplied where the run would cross a building or paving. It is a preference, not a guarantee: where the only path is through, the penalty is paid and the run is drawn honestly rather than hidden."
+        - generic [ref=e63]:
+          - heading "What it is not" [level=3] [ref=e64]
+          - paragraph [ref=e65]: Not a hydraulic design. Nozzle flow and throw are catalogue approximations, friction loss in the pipe is not modelled, and nothing here knows your local code, your backflow requirements or where your utilities are buried. It is close enough to size zones and argue with a parts list. It is not close enough to skip a pressure gauge, a bucket, or a call before you dig.
+      - paragraph [ref=e66]:
+        - text: EXP-039 in
+        - link "the Lab at ryankm.com" [ref=e67] [cursor=pointer]:
+          - /url: https://ryankm.com/lab
+        - text: . Source on
+        - link "GitHub" [ref=e68] [cursor=pointer]:
+          - /url: https://github.com/uxpreview/verbose-octo-journey
+        - text: .
