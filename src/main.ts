@@ -62,7 +62,7 @@ const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
   {
     k: "Wet the sheet first",
     v: [
-      "Water before paint gives soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a damp wash and let it dry. Backlight shows what the light survives.",
+      "Water before paint gives soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a damp wash and let it dry. Backlight shows what the light survives. Focus (the button on the desk, or F) gives you the sheet alone, as big as the window.",
     ],
   },
   {

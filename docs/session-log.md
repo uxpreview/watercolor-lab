@@ -304,3 +304,14 @@ the brush; the wash it leaves spreads with the water, which is the point).
 Also: em dashes are gone from every string a visitor reads (page, hints,
 cards, meta, the share card, the README). The engineering log keeps its own
 punctuation.
+
+Follow-up the same day: on a wide desk (the four-column bench, ≥1180px)
+Ryan wanted the sheet as wide as the bench, one-screen rule or not, so
+`layoutSheet()` drops the height cap there; the desk's box and the bench
+share their edges. Narrow desks keep the one-screen rule; Focus is unchanged.
+
+Focus also moved off the strip and onto the desk itself, top right over the
+sheet, where a fullscreen control is expected: filled, with its icon and its
+key (F). Ryan's note was that it did not feel like the important feature it
+is; a plain outlined pill at the far end of a row of six reads as one more
+action. The strip is now only actions on the paint.

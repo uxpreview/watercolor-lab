@@ -289,7 +289,7 @@ label,
   background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
-  padding: clamp(12px, 1.5vw, 24px);
+  padding: 16px;
   display: grid;
   place-items: center;
   transition: background-color 0.6s var(--ease-quint);
@@ -298,9 +298,9 @@ label,
    sim pixel is never stretched. Paper on a desk casts a shadow; nothing else
    on the site does, and nothing else here does either.
 
-   Sizing: as wide as the desk allows, but never taller than the window can
-   show together with the action strip and the bench beneath it, so the sheet
-   is the biggest 3:2 that keeps every control in reach without scrolling. */
+   Sizing (layoutSheet in app.ts): on a wide desk and on a phone, as wide as
+   the bench beneath it; on a narrow desk, the biggest 3:2 that keeps the
+   strip and the bench in view beneath it. */
 .sheet {
   /* Width and height are set by layoutSheet() in app.ts, see the note there;
      the aspect ratio here is the fallback before the first layout. */
@@ -375,7 +375,47 @@ label,
   }
 }
 
-/* Focus: the sheet takes the window, the bench becomes a drawer. */
+/* Focus: the sheet takes the window, the bench becomes a drawer. The toggle
+   sits on the desk's top right corner, over the sheet, the way a fullscreen
+   control does: filled, with its icon and its key, so it reads as the one
+   thing to press to get the big sheet. */
+.focus-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 10px;
+  box-shadow: 0 6px 20px rgba(24, 37, 40, 0.22);
+}
+.focus-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.focus-toggle kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: rgba(254, 246, 233, 0.22);
+  color: inherit;
+}
+@media (max-width: 720px) {
+  .focus-toggle {
+    top: 14px;
+    right: 22px;
+  }
+  .focus-toggle kbd {
+    display: none;
+  }
+}
+body.is-focus .focus-toggle {
+  display: none;
+}
 .focus-bar {
   display: none;
 }
@@ -409,10 +449,6 @@ body.is-focus .action-bar .btn {
 }
 body.is-focus .action-bar .btn:not(.btn-primary):not(.is-active) {
   background: var(--bg);
-}
-body.is-focus .action-bar .action-spacer,
-body.is-focus .action-bar .btn:last-child {
-  display: none;
 }
 @media (max-width: 720px) {
   body.is-focus .easel {
@@ -898,9 +934,6 @@ details.box[open] > summary::after {
   gap: 8px;
   align-items: center;
 }
-.action-spacer {
-  flex: 1;
-}
 .action-bar .btn {
   padding: 9px 16px;
 }
@@ -908,9 +941,6 @@ details.box[open] > summary::after {
   .action-bar {
     display: grid;
     grid-template-columns: 1fr 1fr;
-  }
-  .action-spacer {
-    display: none;
   }
 }
 /* Sliders beside the dab. */

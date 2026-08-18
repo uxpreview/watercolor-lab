@@ -96,7 +96,9 @@ In priority order:
      export WebM via MediaRecorder. Watch memory on phones.
 
 3. **Layout** (PR #7): the controls are a bench under the sheet, sized by
-   `layoutSheet()` in `app.ts` so sheet + strip + bench fit one screen; Focus
+   `layoutSheet()` in `app.ts`: on a wide desk (≥1180px) and on a phone the
+   sheet is as wide as the bench (Ryan's call, PR #8); on a narrow desk sheet
+   + strip + bench fit one screen; Focus
    mode makes the sheet the window with the bench as a drawer; phones get an
    edge-to-edge desk and collapsible boxes; the Brushes box paints a dab of
    the current brush and a fine pointer wears the brush's ring. If the bench

@@ -1,0 +1,83 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e3]:
+    - link "Ryan McCarty." [ref=f3e4] [cursor=pointer]:
+      - /url: https://ryankm.com
+    - link "Back to the Lab" [ref=f3e5] [cursor=pointer]:
+      - /url: https://ryankm.com/lab
+      - text: Back to the Lab
+      - generic [ref=f3e6]: ↗
+  - main [ref=f3e7]:
+    - generic [ref=f3e9]:
+      - generic [ref=f3e10]:
+        - paragraph [ref=f3e11]: EXP-039 · Vanilla JS · SVG · No build step
+        - heading [level=1] [ref=f3e12]:
+          - text: A sprinkler plan for
+          - emphasis [ref=f3e13]: your
+          - text: yard, not mine.
+        - paragraph [ref=f3e14]: Draw the lot, say what your spigot actually delivers, and this places the heads, sizes the nozzles to the shape of each piece of ground, packs the zones under your flow budget, routes the trenches around the house and prints a dig plan you can take to the store. It runs entirely in your browser — no account, no address, no server.
+      - heading "Start" [level=2] [ref=f3e15]
+      - generic [ref=f3e17]:
+        - button "Have a look first Open the example yard An invented 70 × 120 ft lot with a house, a drive, beds, a patio and a shed. Nothing real is modelled. Good for seeing what the auto-layout does before you draw anything. Open" [ref=f3e18] [cursor=pointer]:
+          - generic [ref=f3e19]: Have a look first
+          - generic [ref=f3e20]: Open the example yard
+          - generic [ref=f3e21]: An invented 70 × 120 ft lot with a house, a drive, beds, a patio and a shed. Nothing real is modelled. Good for seeing what the auto-layout does before you draw anything.
+          - generic [ref=f3e22]: Open →
+        - generic [ref=f3e23]:
+          - generic [ref=f3e24]: Know your dimensions
+          - generic [ref=f3e25]: Start from a blank lot
+          - generic [ref=f3e26]: Enter the lot size and draw the yard on top of it.
+          - generic [ref=f3e27]:
+            - generic [ref=f3e28]:
+              - generic [ref=f3e29]: Width
+              - spinbutton "Width" [ref=f3e30]: "70"
+            - generic [ref=f3e31]: ×
+            - generic [ref=f3e32]:
+              - generic [ref=f3e33]: Depth
+              - spinbutton "Depth" [ref=f3e34]: "120"
+            - generic [ref=f3e35]:
+              - generic [ref=f3e36]: Units
+              - combobox "Units" [ref=f3e37]:
+                - option "feet" [selected]
+                - option "metres"
+          - button "Create the lot" [ref=f3e38] [cursor=pointer]
+        - generic [ref=f3e39]:
+          - generic [ref=f3e40]: Have a picture of it
+          - generic [ref=f3e41]: Trace your own image
+          - generic [ref=f3e42]: A screenshot of a satellite view, a survey, a plot plan, a sketch on graph paper. You set the scale by clicking two points you know the distance between. The image is read straight off your disk and never uploaded.
+          - generic [ref=f3e43] [cursor=pointer]: Choose an image
+      - paragraph [ref=f3e45]:
+        - text: You have a saved plan in this browser.
+        - button "Pick it back up" [ref=f3e46] [cursor=pointer]
+        - text: ·
+        - button "Discard it" [ref=f3e47] [cursor=pointer]
+      - heading "How it works" [level=2] [ref=f3e48]
+      - generic [ref=f3e50]:
+        - generic [ref=f3e51]:
+          - heading "1 · Size the nozzle to the shape" [level=3] [ref=f3e52]
+          - paragraph [ref=f3e53]: The tool measures the largest circle that fits inside each piece of ground — the real "how wide is this" — rather than its area. A 2,000 sq ft lawn and a 2,000 sq ft side strip want completely different heads, and area alone cannot tell them apart. Wide open ground gets gear rotors, ordinary lawns get rotary nozzles, narrow strips get fixed sprays. Then the throw is stepped down until at least three heads fit one zone's flow budget — on a small meter you run more, smaller heads per valve, not one big rotor at a time.
+        - generic [ref=f3e54]:
+          - heading "2 · Ring the edge, fill the middle" [level=3] [ref=f3e55]
+          - paragraph [ref=f3e56]: "Heads go on the corners first, with the arc matched to the interior angle and aimed down the bisector, then along the edges as half circles facing in, then on a triangular lattice wherever the perimeter ring cannot reach. Spacing is head-to-head: every head throws far enough to hit its neighbour. That looks like absurd overlap on paper and it is the entire trick — a single head puts down most of its water close in, so anything less leaves dry rings you cannot fix by turning the water up."
+        - generic [ref=f3e57]:
+          - heading "3 · Prune what earns nothing" [level=3] [ref=f3e58]
+          - paragraph [ref=f3e59]: The corner and edge passes double up, so a greedy pass tries removing each head cheapest-first and keeps the removal only if coverage holds and the head-to-head overlap barely moves. Set cover is NP-hard; a yard does not deserve a branch-and-bound. This typically drops a third of the placements.
+        - generic [ref=f3e60]:
+          - heading "4 · Pack zones under the flow budget" [level=3] [ref=f3e61]
+          - paragraph [ref=f3e62]:
+            - text: Your spigot is the constraint that decides everything. Heads are walked in a nearest-neighbour chain from the water source and packed into zones at 85 % of measured flow, so a zone is a contiguous
+            - emphasis [ref=f3e63]: place
+            - text: in the yard rather than a scattering, and no valve is sized at 100 % of a bucket test. The supply fixes how many valves; the chain is then re-cut into that many runs so the busiest zone draws as little as possible and no head is stranded on a valve of its own.
+        - generic [ref=f3e64]:
+          - heading "5 · Trench as a spanning tree" [level=3] [ref=f3e65]
+          - paragraph [ref=f3e66]: "Each zone gets a minimum spanning tree from its nearest source out to every head, and every edge of it is a routed run: straight where the line stays clear of every building, and otherwise bent around the corners by the shortest path, so the trench on the plan is a trench you can dig. Paving is a price rather than a wall — a walk can be sleeved."
+        - generic [ref=f3e67]:
+          - heading "What it is not" [level=3] [ref=f3e68]
+          - paragraph [ref=f3e69]: Not a hydraulic design. Nozzle flow and throw are catalogue approximations, friction loss in the pipe is not modelled, and nothing here knows your local code, your backflow requirements or where your utilities are buried. It is close enough to size zones and argue with a parts list. It is not close enough to skip a pressure gauge, a bucket, or a call before you dig.
+      - paragraph [ref=f3e70]:
+        - text: EXP-039 in
+        - link "the Lab at ryankm.com" [ref=f3e71] [cursor=pointer]:
+          - /url: https://ryankm.com/lab
+        - text: . Source on
+        - link "GitHub" [ref=f3e72] [cursor=pointer]:
+          - /url: https://github.com/uxpreview/verbose-octo-journey
+        - text: .
