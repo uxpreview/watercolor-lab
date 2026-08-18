@@ -289,7 +289,7 @@ label,
   background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
-  padding: clamp(12px, 1.5vw, 24px);
+  padding: 16px;
   display: grid;
   place-items: center;
   transition: background-color 0.6s var(--ease-quint);
@@ -298,9 +298,9 @@ label,
    sim pixel is never stretched. Paper on a desk casts a shadow; nothing else
    on the site does, and nothing else here does either.
 
-   Sizing: as wide as the desk allows, but never taller than the window can
-   show together with the action strip and the bench beneath it, so the sheet
-   is the biggest 3:2 that keeps every control in reach without scrolling. */
+   Sizing (layoutSheet in app.ts): on a wide desk and on a phone, as wide as
+   the bench beneath it; on a narrow desk, the biggest 3:2 that keeps the
+   strip and the bench in view beneath it. */
 .sheet {
   /* Width and height are set by layoutSheet() in app.ts, see the note there;
      the aspect ratio here is the fallback before the first layout. */

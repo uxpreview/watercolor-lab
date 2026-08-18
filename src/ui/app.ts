@@ -713,6 +713,8 @@ export function mountStudio(host: HTMLElement): AppApi {
   // the window is the desk. A canvas cannot be left to CSS for this: a
   // replaced element with an explicit width does not give height back to
   // width when a max-height bites, it stretches.
+  const wideDesk = window.matchMedia("(min-width: 1180px)");
+  wideDesk.addEventListener("change", () => layoutSheet());
   const studioPadX = () => {
     const st = getComputedStyle(easel.parentElement as HTMLElement);
     return parseFloat(st.paddingLeft) + parseFloat(st.paddingRight);
@@ -734,10 +736,16 @@ export function mountStudio(host: HTMLElement): AppApi {
     if (focus) {
       // The strip and the focus buttons sit under the sheet, not over it.
       capH = window.innerHeight - padY - (portrait ? 112 : 64);
-    } else if (portrait) {
+    } else if (portrait || wideDesk.matches) {
+      // A phone, or a desk wide enough for the four-column bench: the sheet
+      // is as wide as the bench beneath it. On a wide desk that is Ryan's
+      // call over the one-screen rule (a full-width 3:2 sheet is taller than
+      // a laptop's screen; the bench is one scroll below, and Focus is there
+      // for the sheet alone).
       capH = Infinity;
     } else {
-      // Room for the strip and the bench under the sheet, plus the gaps.
+      // A narrow desk: room for the strip and the bench under the sheet, so
+      // the whole studio holds in one screen.
       const below = actions.offsetHeight + bench.offsetHeight + 16 * 2 + padY + 4;
       capH = Math.max(320, window.innerHeight - below);
     }
