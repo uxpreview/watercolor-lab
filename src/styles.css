@@ -176,6 +176,12 @@ label,
   width: 100%;
   max-width: 1180px;
   aspect-ratio: 3 / 2;
+}
+.sheet.is-portrait {
+  aspect-ratio: 2 / 3;
+  max-width: 560px;
+}
+.sheet {
   display: block;
   border-radius: 2px;
   box-shadow:
@@ -245,6 +251,52 @@ body.is-backlit .sheet {
   height: auto;
   display: block;
 }
+
+/* The mixing well: current brush charge, rendered by the same KM maths as
+   every pan. */
+.well-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.well-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid var(--edge);
+  flex: none;
+}
+.well-caption {
+  margin-top: 0;
+  min-width: 0;
+  flex: 1;
+}
+.well-caption .pigment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.well-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: none;
+}
+.recent-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  min-height: 0;
+}
+.recent-row:empty {
+  display: none;
+}
+.chip-mini {
+  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+}
 .pigment-caption {
   margin-top: 12px;
   display: flex;
@@ -305,9 +357,15 @@ body.is-backlit .sheet {
 }
 .slider {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 58px 1fr 30px;
   align-items: center;
   gap: 10px;
+}
+.slider-value {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
 }
 .slider-label {
   font-size: 13px;
@@ -411,4 +469,20 @@ body.is-backlit .sheet {
 }
 .gl-error h2 {
   color: var(--strong);
+}
+
+@media (max-width: 720px) {
+  .easel {
+    padding: 10px;
+  }
+  .intro {
+    padding-top: 22px;
+  }
+  .studio {
+    padding-top: 14px;
+    gap: 14px;
+  }
+  .tool-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }

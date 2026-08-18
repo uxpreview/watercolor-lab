@@ -11,21 +11,25 @@ import { el } from "./dom";
 
 const CHIP = 44;
 
-function paintChip(canvas: HTMLCanvasElement, pigment: Pigment): void {
+/** Paints any K/S pair as a thickness-ramp chip — the palette pans, the well
+ * swatch, and the recents row all go through here so every swatch in the app
+ * is the same physics. */
+export function paintChip(canvas: HTMLCanvasElement, pigment: Pick<Pigment, "k" | "s">): void {
   const ctx = canvas.getContext("2d")!;
-  const image = ctx.createImageData(CHIP, CHIP);
+  const size = canvas.width;
+  const image = ctx.createImageData(size, size);
   const r: Vec3 = [0, 0, 0];
   const t: Vec3 = [0, 0, 0];
   const out: Vec3 = [0, 0, 0];
-  for (let y = 0; y < CHIP; y++) {
+  for (let y = 0; y < size; y++) {
     // Full-strength at the top of the chip down to a pale tint: the diagonal
     // read a tube swatch gives you.
-    for (let x = 0; x < CHIP; x++) {
-      const mix = (y / CHIP) * 0.85 + (x / CHIP) * 0.15;
+    for (let x = 0; x < size; x++) {
+      const mix = (y / size) * 0.85 + (x / size) * 0.15;
       const thickness = 3.6 * Math.pow(1 - mix, 2.1) + 0.05;
       layerRT(pigment.k, pigment.s, thickness, r, t);
       composite(r, t, PAPER_REFLECTANCE, out);
-      const idx = (y * CHIP + x) * 4;
+      const idx = (y * size + x) * 4;
       image.data[idx] = linearToSrgbByte(out[0]);
       image.data[idx + 1] = linearToSrgbByte(out[1]);
       image.data[idx + 2] = linearToSrgbByte(out[2]);

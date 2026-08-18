@@ -28,6 +28,7 @@ import {
   DRY_CLEAR_SUS_FRAG,
   DRY_FOLD_FRAG,
   FLUX_FRAG,
+  LIFT_FRAG,
   MOVE_PIGMENT_FRAG,
   RENDER_FRAG,
   SALT_FRAG,
@@ -64,6 +65,8 @@ export interface Params {
   granBias: number;
   lift: number;
   saltLift: number;
+  /** Extra lift under the lift tool's scrub field. */
+  scrubLift: number;
   /** Deposition multiplier at the drying front — the dried rim, the tide
    * line, the backrun's cauliflower edge. */
   edgeSettle: number;
@@ -89,6 +92,7 @@ export const DEFAULT_PARAMS: Params = {
   granBias: 1.1,
   lift: 0.005,
   saltLift: 0.5,
+  scrubLift: 0.9,
   edgeSettle: 14,
   substeps: 3,
   zoomGrain: 0.006,
@@ -131,6 +135,7 @@ export class Simulation {
   private progDryClearDep: Program;
   private progSplat: Program;
   private progSalt: Program;
+  private progLift: Program;
   private progRender: Program;
 
   private mrtFbo: WebGLFramebuffer;
@@ -143,6 +148,8 @@ export class Simulation {
   private undoCursor = 0;
 
   private fastDrySteps = 0;
+  /** Ambient mode: evaporation off, the sheet never dries. */
+  foreverWet = false;
   paperKind: PaperKind = "cold-press";
 
   constructor(canvas: HTMLCanvasElement, simWidth: number, simHeight: number) {
@@ -176,6 +183,7 @@ export class Simulation {
     this.progDryClearDep = createProgram(this.ctx, DRY_CLEAR_DEP_FRAG);
     this.progSplat = createProgram(this.ctx, SPLAT_FRAG, SPLAT_VERT);
     this.progSalt = createProgram(this.ctx, SALT_FRAG, SPLAT_VERT);
+    this.progLift = createProgram(this.ctx, LIFT_FRAG, SPLAT_VERT);
     this.progRender = createProgram(this.ctx, RENDER_FRAG);
 
     this.mrtFbo = gl.createFramebuffer()!;
@@ -326,6 +334,40 @@ export class Simulation {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  /** Marks the lift tool's scrub field under a batch of stamps. The water
+   * itself arrives through the normal splat; this only disturbs the sizing
+   * so the transfer pass re-suspends deposit there. */
+  addScrub(stamps: Stamp[]): void {
+    if (stamps.length === 0) return;
+    const { gl } = this.ctx;
+    const count = Math.min(stamps.length, MAX_STAMPS);
+    for (let i = 0; i < count; i++) {
+      const st = stamps[i];
+      const base = i * 8;
+      this.splatData[base] = st.x;
+      this.splatData[base + 1] = this.simHeight - st.y;
+      this.splatData[base + 2] = st.radius;
+      this.splatData[base + 3] = 0;
+      this.splatData[base + 4] = 0.35;
+      this.splatData[base + 5] = 0;
+      this.splatData[base + 6] = i;
+      this.splatData[base + 7] = 0;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.splatInstanceBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.splatData, 0, count * 8);
+    this.bindMRT([this.cap.read]);
+    gl.viewport(0, 0, this.simWidth, this.simHeight);
+    gl.useProgram(this.progLift.program);
+    gl.uniform2f(this.progLift.uniforms.uSimSize, this.simWidth, this.simHeight);
+    gl.bindVertexArray(this.splatVao);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
   /** The hairdryer: fast-forward evaporation over the next several frames,
    * so the drying is watched rather than instantaneous — the edges creep in
    * and the blooms freeze exactly as they would at 1×, just quicker. */
@@ -338,7 +380,7 @@ export class Simulation {
   /** One frame's worth of physics. */
   update(): void {
     const steps = this.params.substeps + (this.fastDrySteps > 0 ? 13 : 0);
-    const evapMul = this.fastDrySteps > 0 ? 28 : 1;
+    const evapMul = this.fastDrySteps > 0 ? 28 : this.foreverWet ? 0 : 1;
     for (let i = 0; i < steps; i++) this.substep(evapMul);
     if (this.fastDrySteps > 0) this.fastDrySteps -= steps;
   }
@@ -445,6 +487,7 @@ export class Simulation {
       uGranBias: p.granBias,
       uLift: p.lift,
       uSaltLift: p.saltLift,
+      uScrubLift: p.scrubLift,
       uEdgeSettle: p.edgeSettle,
     };
     // Both passes read the same pre-swap textures, so the two sides of the
@@ -594,5 +637,32 @@ export class Simulation {
     clearTarget(this.ctx, this.dried.read, pr, pg, pb, 0);
     clearTarget(this.ctx, this.dried.write, pr, pg, pb, 0);
     this.fastDrySteps = 0;
+  }
+
+  /** Reads the dried layer back for persistence. Returns null when the
+   * implementation cannot read float pixels (rare on WebGL2 hardware). */
+  serializeDried(): Float32Array | null {
+    const { gl } = this.ctx;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.dried.read.fbo);
+    const type = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE) as number;
+    const format = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT) as number;
+    if (type !== gl.FLOAT || format !== gl.RGBA) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return null;
+    }
+    const out = new Float32Array(this.simWidth * this.simHeight * 4);
+    gl.readPixels(0, 0, this.simWidth, this.simHeight, gl.RGBA, gl.FLOAT, out);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return out;
+  }
+
+  /** Restores a previously serialized dried layer onto a fresh sheet. */
+  restoreDried(data: Float32Array): void {
+    if (data.length !== this.simWidth * this.simHeight * 4) return;
+    const { gl } = this.ctx;
+    this.resetState();
+    gl.bindTexture(gl.TEXTURE_2D, this.dried.read.texture);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.simWidth, this.simHeight, gl.RGBA, gl.FLOAT, data);
+    copyTarget(this.ctx, this.dried.read, this.dried.write);
   }
 }

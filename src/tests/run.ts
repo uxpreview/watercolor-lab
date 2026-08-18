@@ -9,6 +9,7 @@
 import { composite, hexToLinear, kmFromMasstone, layerRT, linearToSrgbByte, masstone, PAPER_REFLECTANCE, type Vec3 } from "../paint/km";
 import { handlingNote, PIGMENTS } from "../paint/pigments";
 import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS } from "../paint/brush";
+import { mixWell, wellName } from "../paint/mix";
 import { generatePaper, PAPERS } from "../engine/paper";
 
 let failures = 0;
@@ -173,6 +174,43 @@ section("pigments: the library is physical and honest");
 
   const ids = new Set(PIGMENTS.map((p) => p.id));
   ok(ids.size === PIGMENTS.length, "pigment ids are unique");
+}
+
+// --- Mixing well -----------------------------------------------------------
+
+section("mix: the well is Kubelka-Munk linear");
+{
+  const ultra = PIGMENTS.find((p) => p.id === "french-ultramarine")!;
+  const sienna = PIGMENTS.find((p) => p.id === "burnt-sienna")!;
+
+  ok(mixWell([]) === null, "an empty well is clean water");
+  ok(mixWell([{ pigment: ultra, parts: 1 }]) === ultra, "a single dip is the pigment itself");
+
+  const half = mixWell([
+    { pigment: ultra, parts: 1 },
+    { pigment: sienna, parts: 1 },
+  ])!;
+  for (let c = 0; c < 3; c++) {
+    near(half.k[c], 0.5 * ultra.k[c] + 0.5 * sienna.k[c], 1e-9, `mix K linear channel ${c}`);
+    near(half.s[c], 0.5 * ultra.s[c] + 0.5 * sienna.s[c], 1e-9, `mix S linear channel ${c}`);
+  }
+  near(half.granulation, 0.5 * (ultra.granulation + sienna.granulation), 1e-9, "mix granulation averages");
+  near(half.staining, 0.5 * (ultra.staining + sienna.staining), 1e-9, "mix staining averages");
+
+  // Parts weight the mix: two dips of ultramarine to one of sienna leans blue.
+  const twoToOne = mixWell([
+    { pigment: ultra, parts: 2 },
+    { pigment: sienna, parts: 1 },
+  ])!;
+  for (let c = 0; c < 3; c++) {
+    near(twoToOne.k[c], (2 * ultra.k[c] + sienna.k[c]) / 3, 1e-9, `weighted mix channel ${c}`);
+  }
+
+  ok(/^#[0-9a-f]{6}$/.test(half.hex), "mix hex is displayable");
+  ok(wellName([{ pigment: ultra, parts: 1 }, { pigment: sienna, parts: 1 }]).includes("+"), "well name joins components");
+
+  // The lift tool exists and carries no pigment.
+  ok(TOOLS.lift.pigment === 0 && TOOLS.lift.water > 0, "lift is a damp, clean scrub");
 }
 
 // --- Brush -----------------------------------------------------------------

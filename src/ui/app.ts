@@ -1,30 +1,31 @@
 /**
- * The studio screen: sheet on the left, paint box on the right, and the
- * wiring between pointer events, the brush model, and the simulator.
+ * The studio screen: sheet on the left (or on top, on a phone), paint box
+ * beside it, and the wiring between pointer events, the brush model, the
+ * mixing well, and the simulator.
  */
 
 import { beginStroke, strokeTo, tapStamp, TOOLS, type StrokeState, type ToolId } from "../paint/brush";
-import { DEFAULT_PIGMENT_ID, PIGMENT_BY_ID, type Pigment } from "../paint/pigments";
+import { DEFAULT_PIGMENT_ID, handlingNote, PIGMENT_BY_ID, type Pigment } from "../paint/pigments";
+import { mixWell, wellName, type WellEntry } from "../paint/mix";
 import { PAPERS, type PaperKind } from "../engine/paper";
 import { Simulation } from "../engine/simulation";
+import { loadSheet, saveSheet } from "../data/store";
 import { confirmButton, el } from "./dom";
-import { createPalette } from "./palette";
+import { createPalette, paintChip } from "./palette";
 
 export const SIM_W = 1056;
 export const SIM_H = 704;
 
-/** The simulation grid. A `?sim=WxH` query overrides it — the scripted
- * figure and check harness runs under software GL, where full resolution
- * costs minutes per scene; the physics is resolution-independent enough for
- * judging at half size. */
+/** The simulation grid. Landscape 3:2 on a desk, portrait 2:3 on a phone —
+ * a sheet is held the way the hand holding it is oriented. `?sim=WxH`
+ * overrides both (the scripted figure harness uses it). */
 function simDims(): { w: number; h: number } {
   const m = /[?&]sim=(\d+)x(\d+)/.exec(location.search);
-  if (!m) return { w: SIM_W, h: SIM_H };
-  return { w: Math.min(2048, Number(m[1])), h: Math.min(2048, Number(m[2])) };
+  if (m) return { w: Math.min(2048, Number(m[1])), h: Math.min(2048, Number(m[2])) };
+  const portrait = window.matchMedia("(max-width: 720px)").matches;
+  return portrait ? { w: SIM_H, h: SIM_W } : { w: SIM_W, h: SIM_H };
 }
 
-/** Everything a scripted driver (the figures script, the visual checks, a
- * curious visitor with devtools open) can do that a pointer can do. */
 export interface AppApi {
   sim: Simulation;
   setTool(id: ToolId | "salt"): void;
@@ -34,13 +35,11 @@ export interface AppApi {
   setLoad(v: number): void;
   setPaper(kind: PaperKind): void;
   setBacklight(on: boolean): void;
-  /** Paints a path of sim-space points, stepping the physics as it goes. */
   strokePath(points: Array<{ x: number; y: number }>, stepsPerSegment?: number): void;
   salt(x: number, y: number): void;
   dry(): void;
   undo(): void;
   clear(): void;
-  /** Deterministic fast-forward for scripts. */
   step(n: number, evapMul?: number): void;
 }
 
@@ -51,6 +50,7 @@ const ICONS: Record<string, string> = {
   drybrush: `<svg viewBox="0 0 24 24"><g fill="currentColor"><rect x="4" y="5" width="2.1" height="14" rx="1"/><rect x="8.2" y="4" width="2.1" height="12" rx="1"/><rect x="12.4" y="6" width="2.1" height="14" rx="1"/><rect x="16.6" y="4.5" width="2.1" height="11" rx="1"/></g></svg>`,
   spatter: `<svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="7" cy="8" r="2.6"/><circle cx="15.5" cy="5.5" r="1.6"/><circle cx="18" cy="12" r="2.2"/><circle cx="10" cy="15.5" r="1.3"/><circle cx="15" cy="18.5" r="1.8"/><circle cx="5.5" cy="18" r="1"/></g></svg>`,
   water: `<svg viewBox="0 0 24 24"><path d="M12 3.5c2.8 3.9 6 7.6 6 11a6 6 0 1 1-12 0c0-3.4 3.2-7.1 6-11z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`,
+  lift: `<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="9" rx="3" fill="currentColor" opacity="0.8"/><path d="M8 17c0 1.2-.9 2.5-.9 2.5M12 17c0 1.2-.9 2.5-.9 2.5M16 17c0 1.2-.9 2.5-.9 2.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`,
   salt: `<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 4l1 2.2L15.2 7 13 8l-1 2.2L11 8l-2.2-1L11 6.2z"/><circle cx="6.5" cy="13.5" r="1.2"/><circle cx="12" cy="16" r="1.2"/><circle cx="17.5" cy="13.5" r="1.2"/><circle cx="9" cy="19.5" r="1"/><circle cx="15" cy="19.5" r="1"/></g></svg>`,
 };
 
@@ -62,49 +62,58 @@ function iconButton(name: string, label: string, onClick: () => void): HTMLButto
 }
 
 function slider(label: string, initial: number, onInput: (v: number) => void): { root: HTMLElement; set(v: number): void } {
+  const readout = el("span", { class: "slider-value" }, String(Math.round(initial * 100)));
+  const apply = (v: number) => {
+    readout.textContent = String(Math.round(v * 100));
+    onInput(v);
+  };
   const input = el("input", {
     type: "range",
     min: "0",
     max: "1",
     step: "0.01",
     value: String(initial),
-    oninput: () => onInput(Number(input.value)),
+    oninput: () => apply(Number(input.value)),
   }) as HTMLInputElement;
-  const root = el("label", { class: "slider" }, el("span", { class: "slider-label" }, label), input);
+  const root = el("label", { class: "slider" }, el("span", { class: "slider-label" }, label), input, readout);
   return {
     root,
     set(v: number) {
       input.value = String(v);
-      onInput(v);
+      apply(v);
     },
   };
 }
 
 export function mountStudio(host: HTMLElement): AppApi {
-  const canvas = el("canvas", { class: "sheet", "aria-label": "Watercolor paper. Draw here to paint." });
+  const dims = simDims();
+  const portrait = dims.h > dims.w;
+  const canvas = el("canvas", {
+    class: `sheet${portrait ? " is-portrait" : ""}`,
+    "aria-label": "Watercolor paper. Draw here to paint.",
+  });
 
   // ---- state -------------------------------------------------------------
   let tool: ToolId | "salt" = "round";
-  let pigment: Pigment = PIGMENT_BY_ID.get(DEFAULT_PIGMENT_ID)!;
+  let well: WellEntry[] = [{ pigment: PIGMENT_BY_ID.get(DEFAULT_PIGMENT_ID)!, parts: 1 }];
+  let brushPigment: Pigment | null = mixWell(well);
+  let mixMode = false;
   let size = 0.42;
   let water = 0.55;
   let load = 0.65;
   let backlight = false;
+  let rain = false;
   let stroke: StrokeState | null = null;
   let strokeMoved = false;
 
-  const dims = simDims();
   const sim = new Simulation(canvas, dims.w, dims.h);
-  // `?seed=N` pins the sheet, so a scripted figure reproduces exactly; an
-  // interactive visitor gets a fresh sheet every time, like a real pad.
+  const scripted = /[?&](sim|seed)=/.test(location.search);
   const seedMatch = /[?&]seed=(\d+)/.exec(location.search);
   if (seedMatch) {
     sim.paperSeed = Number(seedMatch[1]);
     sim.setPaper("cold-press", true, sim.paperSeed);
   }
-  // Scripted scenes speak in reference coordinates (1056×704) so they render
-  // the same composition at any sim size.
-  const refScale = dims.w / SIM_W;
+  const refScale = dims.w / (portrait ? SIM_H : SIM_W);
 
   // ---- canvas sizing -----------------------------------------------------
   const fitCanvas = () => {
@@ -143,6 +152,8 @@ export function mountStudio(host: HTMLElement): AppApi {
     strokeMoved = false;
   });
 
+  const strokePigment = () => (stroke && stroke.tool.pigment > 0 ? brushPigment : null);
+
   canvas.addEventListener("pointermove", (e) => {
     const events = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
     if (tool === "salt") {
@@ -161,7 +172,8 @@ export function mountStudio(host: HTMLElement): AppApi {
       const stamps = strokeTo(stroke, at.x, at.y, pressure);
       if (stamps.length > 0) {
         strokeMoved = true;
-        sim.splat(stamps, stroke.tool.pigment > 0 ? pigment : null);
+        sim.splat(stamps, strokePigment());
+        if (stroke.tool.id === "lift") sim.addScrub(stamps);
       }
     }
   });
@@ -170,7 +182,9 @@ export function mountStudio(host: HTMLElement): AppApi {
     if (stroke && !strokeMoved) {
       // A tap still leaves a mark — a loaded brush touched the sheet.
       const pressure = e.pressure > 0 ? e.pressure : 0.5;
-      sim.splat([tapStamp(stroke, pressure)], stroke.tool.pigment > 0 ? pigment : null);
+      const stamp = tapStamp(stroke, pressure);
+      sim.splat([stamp], strokePigment());
+      if (stroke.tool.id === "lift") sim.addScrub([stamp]);
     }
     stroke = null;
   };
@@ -186,20 +200,100 @@ export function mountStudio(host: HTMLElement): AppApi {
     if (e.key === "]") sizeCtl.set(Math.min(1, size + 0.06));
   });
 
-  // ---- toolbox -----------------------------------------------------------
-  const palette = createPalette(DEFAULT_PIGMENT_ID);
-  palette.onChange((p) => {
-    pigment = p;
-    if (tool === "water" || tool === "salt") selectTool("round");
-  });
+  // ---- the mixing well ---------------------------------------------------
+  const WELL_CHIP = 44;
+  const wellCanvas = el("canvas", { width: WELL_CHIP, height: WELL_CHIP, class: "well-swatch" });
+  const wellName_ = el("span", { class: "pigment-name" });
+  const wellMeta = el("span", { class: "pigment-meta" });
+  const recentRow = el("div", { class: "recent-row", "aria-label": "Recent pigments" });
+  let recents: Pigment[] = [];
 
+  const renderWell = () => {
+    const ctx2d = wellCanvas.getContext("2d")!;
+    if (brushPigment) {
+      paintChip(wellCanvas, brushPigment);
+      wellName_.textContent = wellName(well);
+      wellMeta.textContent =
+        well.length > 1 ? `mix · ${handlingNote(brushPigment)}` : `${brushPigment.code} · ${handlingNote(brushPigment)}`;
+    } else {
+      ctx2d.fillStyle = "#f2ead9";
+      ctx2d.fillRect(0, 0, WELL_CHIP, WELL_CHIP);
+      wellName_.textContent = "Rinsed";
+      wellMeta.textContent = "clean water — dip a pigment";
+    }
+  };
+
+  const renderRecents = () => {
+    recentRow.replaceChildren(
+      ...recents.map((p) => {
+        const mini = el("canvas", { width: 28, height: 28, class: "chip-swatch" });
+        paintChip(mini, p);
+        return el(
+          "button",
+          { class: "chip chip-mini", type: "button", title: p.name, "aria-label": p.name, onclick: () => dip(p) },
+          mini
+        );
+      })
+    );
+  };
+
+  const dip = (p: Pigment) => {
+    if (mixMode && well.length > 0) {
+      const existing = well.find((e) => e.pigment.id === p.id);
+      if (existing) existing.parts = Math.min(existing.parts + 1, 6);
+      else if (well.length < 4) well.push({ pigment: p, parts: 1 });
+    } else {
+      well = [{ pigment: p, parts: 1 }];
+    }
+    brushPigment = mixWell(well);
+    recents = [p, ...recents.filter((r) => r.id !== p.id)].slice(0, 6);
+    if (tool === "water" || tool === "lift" || tool === "salt") selectTool("round");
+    renderWell();
+    renderRecents();
+  };
+
+  const rinse = () => {
+    well = [];
+    brushPigment = null;
+    renderWell();
+  };
+
+  const mixBtn = el(
+    "button",
+    {
+      class: "btn btn-ghost btn-small",
+      type: "button",
+      "aria-pressed": "false",
+      title: "When on, dipping a pigment adds it to the mix instead of replacing it",
+      onclick: () => {
+        mixMode = !mixMode;
+        mixBtn.setAttribute("aria-pressed", String(mixMode));
+        mixBtn.classList.toggle("is-active", mixMode);
+      },
+    },
+    "Mix"
+  );
+
+  const wellRow = el(
+    "div",
+    { class: "well-row" },
+    wellCanvas,
+    el("div", { class: "pigment-caption well-caption" }, wellName_, wellMeta),
+    el("div", { class: "well-actions" }, mixBtn, el("button", { class: "btn btn-ghost btn-small", type: "button", onclick: rinse }, "Rinse"))
+  );
+
+  const palette = createPalette(DEFAULT_PIGMENT_ID);
+  palette.onChange(dip);
+  renderWell();
+
+  // ---- toolbox -----------------------------------------------------------
   const toolButtons = new Map<string, HTMLButtonElement>();
   const selectTool = (id: ToolId | "salt") => {
     tool = id;
     for (const [key, btn] of toolButtons) btn.classList.toggle("is-active", key === id);
   };
   const toolRow = el("div", { class: "tool-row", role: "toolbar", "aria-label": "Brushes" });
-  const toolIds: Array<ToolId | "salt"> = ["round", "mop", "rigger", "drybrush", "spatter", "water", "salt"];
+  const toolIds: Array<ToolId | "salt"> = ["round", "mop", "rigger", "drybrush", "spatter", "water", "lift", "salt"];
   for (const id of toolIds) {
     const label = id === "salt" ? "Salt" : TOOLS[id as ToolId].name;
     const btn = iconButton(id, label, () => selectTool(id));
@@ -228,6 +322,39 @@ export function mountStudio(host: HTMLElement): AppApi {
     paperRow.append(btn);
   }
 
+  // ---- alive modes -------------------------------------------------------
+  const foreverWetBtn = el(
+    "button",
+    {
+      class: "btn btn-ghost btn-small",
+      type: "button",
+      "aria-pressed": "false",
+      title: "Evaporation off: the sheet stays workable forever",
+      onclick: () => {
+        sim.foreverWet = !sim.foreverWet;
+        foreverWetBtn.setAttribute("aria-pressed", String(sim.foreverWet));
+        foreverWetBtn.classList.toggle("is-active", sim.foreverWet);
+      },
+    },
+    "Forever wet"
+  );
+  const rainBtn = el(
+    "button",
+    {
+      class: "btn btn-ghost btn-small",
+      type: "button",
+      "aria-pressed": "false",
+      title: "Clean water falls on the sheet and works your paint over",
+      onclick: () => {
+        rain = !rain;
+        rainBtn.setAttribute("aria-pressed", String(rain));
+        rainBtn.classList.toggle("is-active", rain);
+      },
+    },
+    "Rain"
+  );
+
+  // ---- actions -----------------------------------------------------------
   const backlightBtn = el(
     "button",
     { class: "btn btn-ghost", type: "button", "aria-pressed": "false", onclick: () => setBacklight(!backlight) },
@@ -251,12 +378,60 @@ export function mountStudio(host: HTMLElement): AppApi {
     }, "image/png");
   };
 
+  // Save dries the sheet first — the wet layer is not part of the document,
+  // same as walking away from a real painting overnight.
+  const saveBtn = el(
+    "button",
+    {
+      class: "btn btn-ghost",
+      type: "button",
+      onclick: async () => {
+        saveBtn.textContent = "Drying…";
+        (saveBtn as HTMLButtonElement).disabled = true;
+        sim.stepMany(500, 28);
+        const dried = sim.serializeDried();
+        if (dried) {
+          try {
+            await saveSheet({
+              width: sim.simWidth,
+              height: sim.simHeight,
+              paperKind: sim.paperKind,
+              paperSeed: sim.paperSeed,
+              dried,
+              savedAt: Date.now(),
+            });
+            saveBtn.textContent = "Saved";
+          } catch {
+            saveBtn.textContent = "Save failed";
+          }
+        } else {
+          saveBtn.textContent = "Save failed";
+        }
+        setTimeout(() => {
+          saveBtn.textContent = "Save sheet";
+          (saveBtn as HTMLButtonElement).disabled = false;
+        }, 1600);
+      },
+    },
+    "Save sheet"
+  );
+
+  if (!scripted) {
+    loadSheet().then((rec) => {
+      if (rec && rec.width === sim.simWidth && rec.height === sim.simHeight) {
+        sim.setPaper(rec.paperKind, true, rec.paperSeed);
+        sim.restoreDried(rec.dried);
+      }
+    });
+  }
+
   const actions = el(
     "div",
     { class: "action-col" },
     el("button", { class: "btn btn-primary", type: "button", onclick: () => sim.dryFast() }, "Dry the sheet"),
     backlightBtn,
     el("button", { class: "btn btn-ghost", type: "button", onclick: () => sim.undo() }, "Undo"),
+    saveBtn,
     el("button", { class: "btn btn-ghost", type: "button", onclick: exportPNG }, "Export PNG"),
     confirmButton("Clear sheet", "Really clear?", () => sim.clearSheet())
   );
@@ -264,7 +439,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   const toolbox = el(
     "aside",
     { class: "toolbox" },
-    el("section", { class: "box" }, el("h2", { class: "box-title" }, "Pigments"), palette.root),
+    el("section", { class: "box" }, el("h2", { class: "box-title" }, "Pigments"), wellRow, recentRow, palette.root),
     el(
       "section",
       { class: "box" },
@@ -273,6 +448,7 @@ export function mountStudio(host: HTMLElement): AppApi {
       el("div", { class: "slider-col" }, sizeCtl.root, waterCtl.root, loadCtl.root)
     ),
     el("section", { class: "box" }, el("h2", { class: "box-title" }, "Paper"), paperRow),
+    el("section", { class: "box" }, el("h2", { class: "box-title" }, "Alive"), el("div", { class: "paper-row" }, foreverWetBtn, rainBtn)),
     el("section", { class: "box" }, el("h2", { class: "box-title" }, "Sheet"), actions)
   );
 
@@ -281,8 +457,23 @@ export function mountStudio(host: HTMLElement): AppApi {
   fitCanvas();
 
   // ---- loop --------------------------------------------------------------
+  let frameCount = 0;
   const frame = () => {
     fitCanvas();
+    if (rain && frameCount++ % 10 === 0) {
+      const drops = [];
+      for (let i = 0; i < 2; i++) {
+        drops.push({
+          x: Math.random() * dims.w,
+          y: Math.random() * dims.h,
+          radius: 3 + Math.random() * 7,
+          water: 0.5 + Math.random(),
+          pigment: 0,
+          dryness: 0,
+        });
+      }
+      sim.splat(drops, null);
+    }
     sim.update();
     sim.render(backlight ? 1 : 0);
     requestAnimationFrame(frame);
@@ -295,7 +486,11 @@ export function mountStudio(host: HTMLElement): AppApi {
     setTool: selectTool,
     setPigment: (id) => {
       const p = PIGMENT_BY_ID.get(id);
-      if (p) pigment = p;
+      if (p) {
+        well = [{ pigment: p, parts: 1 }];
+        brushPigment = mixWell(well);
+        renderWell();
+      }
     },
     setSize: (v) => sizeCtl.set(v),
     setWater: (v) => waterCtl.set(v),
@@ -309,7 +504,7 @@ export function mountStudio(host: HTMLElement): AppApi {
       const s = beginStroke(TOOLS[tool as ToolId], size, water, load, pts[0].x, pts[0].y, 12345, refScale);
       for (let i = 1; i < pts.length; i++) {
         const stamps = strokeTo(s, pts[i].x, pts[i].y, 0.55);
-        if (stamps.length > 0) sim.splat(stamps, s.tool.pigment > 0 ? pigment : null);
+        if (stamps.length > 0) sim.splat(stamps, s.tool.pigment > 0 ? brushPigment : null);
         sim.stepMany(stepsPerSegment);
       }
     },

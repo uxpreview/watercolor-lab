@@ -82,6 +82,10 @@ quiet; the quinacridones travel.
 
 Because the physics is real, the technique vocabulary transfers:
 
+- **Mixing** — dip more than one pigment into the well (Mix, then tap pans)
+  and the brush carries a physically mixed charge: K and S are linear in
+  concentration, so the well does the same arithmetic the water does. Rinse
+  empties it back to clean water.
 - **Wet-on-wet** — wet the sheet with the water brush first; dropped color
   feathers and mingles.
 - **Wet-on-dry** — paint on dry paper for hard, darkened edges.
@@ -90,9 +94,19 @@ Because the physics is real, the technique vocabulary transfers:
 - **Salt** — sprinkle into a damp wash and let it dry: pale blooms with
   pushed-pigment rims.
 - **Backruns** — push clean water into a drying wash and it crawls back in.
-- **Lifting** — scrub with clean water; staining pigments resist, earths give.
+- **Lifting** — the lift tool is a thirsty damp scrub: it re-suspends
+  deposit, drinks it off the sheet, and shoves the rest to the stroke's
+  edges. Works on damp paint; staining pigments resist, earths give. Dried
+  paint is cured and stays.
 - **Backlight** — a lightbox view that shows what the light survives, through
   every layer and the sheet.
+- **Alive modes** — Forever Wet turns evaporation off so the sheet stays
+  workable; Rain drops clean water on the painting and lets the physics
+  work it over.
+
+On a phone the sheet turns portrait and the paint box stacks beneath it;
+pressure from a stylus (Apple Pencil included) drives stroke width. Save
+sheet dries the painting and keeps it in the browser for the next visit.
 
 ![A starved brush dragged fast over rough paper: broken contact, sparkle on the tooth.](docs/figures/drybrush.png)
 ![Salt thrown into a damp cerulean wash, then dried.](docs/figures/salt.png)
@@ -101,9 +115,10 @@ Because the physics is real, the technique vocabulary transfers:
 
 ```
 src/
-  paint/       Kubelka-Munk maths, the pigment library, brush kinematics
+  paint/       Kubelka-Munk maths, the pigment library, mixing, brush kinematics
   engine/      WebGL2 plumbing, the simulation passes (GLSL), paper generation
-  ui/          palette, toolbox, studio wiring, site chrome
+  ui/          palette, mixing well, toolbox, studio wiring, site chrome
+  data/        saved-sheet persistence (IndexedDB)
   tests/       headless checks for the maths
 scripts/       scene scripts, headless figure generation
 docs/          engineering log, README figures
@@ -139,8 +154,8 @@ rounds and what each round changed.
 
 ## Requirements
 
-A desktop browser with WebGL2 and `EXT_color_buffer_float` — that is any
-Chromium, Firefox or Safari from the last several years. Everything runs
+Any browser with WebGL2 and `EXT_color_buffer_float` — that is Chromium,
+Firefox or Safari from the last several years, phones included. Everything runs
 locally; nothing is uploaded, tracked or stored beyond your undo history,
 which lives in GPU memory and dies with the tab.
 

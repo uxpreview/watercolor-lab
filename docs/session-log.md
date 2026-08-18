@@ -147,3 +147,24 @@ lesson that stuck: choreograph what the medium is good at. The final hero
 is a wet-blended dusk sky (the engine's best trick, three pigments floated
 into one wet field) over a single dark ragged ridge — two stages, no
 fussy gaps, robust to spread.
+
+## Pass 1: the studio grows up
+
+Feature pass after studying the control surface of the original inspiration
+(sudoaquarelle.com): a mixing well (dips accumulate as parts; the mix is the
+parts-weighted K/S average, which is exact for Kubelka-Munk and the same
+arithmetic the suspension textures already do), rinse and a recents row, an
+explicit lift tool, numeric slider readouts, Forever Wet and Rain ambient
+modes, sheet persistence in IndexedDB (the dried layer read back as float
+pixels), and a portrait simulation grid on phones.
+
+The lift tool took three tries to feel true, and each failure was the
+physics being right: lifting *dried* paint did nothing because the dried
+layer is cured by construction; lifting a *soaking* wash did nothing
+lasting because the surrounding suspension flowed straight back into the
+wet lane. The missing piece was that a lifting brush is thirsty — it does
+not just loosen pigment, it removes it from the sheet. The scrub field now
+re-suspends deposit, suppresses re-settling, and drinks a fraction of the
+suspension per step. On a damp wash — which is when a painter actually
+lifts — two passes carve a pale lane with the displaced pigment ridged
+along its edges.

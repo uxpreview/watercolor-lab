@@ -8,7 +8,7 @@
  * makes brushes testable without a GPU.
  */
 
-export type ToolId = "round" | "mop" | "rigger" | "drybrush" | "spatter" | "water";
+export type ToolId = "round" | "mop" | "rigger" | "drybrush" | "spatter" | "water" | "lift";
 
 export interface ToolSpec {
   id: ToolId;
@@ -39,6 +39,9 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
   drybrush: { id: "drybrush", name: "Dry brush", sizeScale: 1.15, water: 0.12, pigment: 1.2,  spacing: 0.16, dryness: 1,   depletion: 0.012,  scatter: 0.08 },
   spatter:  { id: "spatter",  name: "Spatter",   sizeScale: 0.38, water: 0.9,  pigment: 1.2,  spacing: 2.6,  dryness: 0,   depletion: 0.006,  scatter: 3.2 },
   water:    { id: "water",    name: "Water",     sizeScale: 1.3,  water: 1.6,  pigment: 0,    spacing: 0.22, dryness: 0,   depletion: 0.0,    scatter: 0 },
+  // A damp scrub: a little clean water plus a scrub field the transfer pass
+  // reads, so unstained deposit re-suspends and can be dabbed away.
+  lift:     { id: "lift",     name: "Lift",      sizeScale: 1.2,  water: 0.8,  pigment: 0,    spacing: 0.2,  dryness: 0,   depletion: 0.0,    scatter: 0 },
 };
 
 export interface Stamp {

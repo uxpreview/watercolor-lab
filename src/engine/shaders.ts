@@ -211,11 +211,12 @@ uniform float uSettle;     // base settling rate
 uniform float uGranBias;   // extra settling into paper valleys for granulators
 uniform float uLift;       // base re-suspension rate
 uniform float uSaltLift;   // extra lift at a salt grain
+uniform float uScrubLift;  // extra lift under the lift tool's scrub
 uniform float uEdgeSettle; // deposition boost at the boundary of the wet region
 
 struct Exchange { float down; float up; };
 
-Exchange exchange(vec4 flow, vec4 susK, vec4 susP, vec4 depK, vec4 depS, float paperH, float salt, float edge) {
+Exchange exchange(vec4 flow, vec4 susK, vec4 susP, vec4 depK, vec4 depS, float paperH, float salt, float scrub, float edge) {
   float conc = max(susK.a, 1e-6);
   float density = susP.x / conc;
   float gran = susP.y / conc;
@@ -229,6 +230,7 @@ Exchange exchange(vec4 flow, vec4 susK, vec4 susP, vec4 depK, vec4 depS, float p
   valley *= valley;
   float settleRate = uSettle * (0.25 + density) * calm * valley * (0.35 + 0.65 * shallow);
   settleRate *= 1.0 - 0.85 * clamp(salt * 4.0, 0.0, 1.0); // salt keeps pigment moving
+  settleRate /= 1.0 + scrub * 6.0;                         // a scrubbed patch will not re-settle
 
   // The drying front. Where the wet region ends — a wash's perimeter, a tide
   // line mid-dry, the lobed rim of a backrun — suspended pigment strands
@@ -250,6 +252,9 @@ Exchange exchange(vec4 flow, vec4 susK, vec4 susP, vec4 depK, vec4 depS, float p
   float liftRate = uLift * wetHere * (0.3 + speed * 4.0) * (1.0 - clamp(stained, 0.0, 1.0)) * max(peakBias, 0.0);
   liftRate *= 1.0 - 0.75 * edge;
   liftRate += uSaltLift * salt * wetHere;
+  // The lift tool scrubs through the staining resistance partially: even a
+  // phthalo gives a little to a wet scrub, an earth gives nearly everything.
+  liftRate += uScrubLift * scrub * wetHere * (1.0 - 0.7 * clamp(stained, 0.0, 1.0));
   float up = depK.a * clamp(liftRate, 0.0, 0.5);
   return Exchange(down, up);
 }
@@ -269,8 +274,9 @@ void main() {
   vec4 depS = texture(uDepS, vUV);
   vec2 paper = texture(uPaper, vUV).rg;
   float salt = texture(uCap, vUV).g;
+  float scrub = texture(uCap, vUV).b;
   float edge = clamp((flow.a - texture(uBlurW, vUV).r) * 3.0, 0.0, 1.0);
-  Exchange ex = exchange(flow, susK, susP, depK, depS, paper.r, salt, edge);
+  Exchange ex = exchange(flow, susK, susP, depK, depS, paper.r, salt, scrub, edge);
 
   float conc = max(susK.a, 1e-6);
   float downFrac = ex.down / conc;
@@ -282,6 +288,13 @@ void main() {
   outS = susS * (1.0 - downFrac) + depS * upFrac;
   vec3 liftedProps = vec3(0.5, 0.3, depS.a / depth) * ex.up;
   outP = vec4(susP.xyz * (1.0 - downFrac) + liftedProps, 0.0);
+
+  // The lift tool's brush is thirsty: suspension under the scrub leaves the
+  // sheet entirely, the way a damp brush or tissue carries pigment away.
+  float drink = clamp(scrub * 0.35, 0.0, 0.2);
+  outK *= 1.0 - drink;
+  outS *= 1.0 - drink;
+  outP *= 1.0 - drink;
 }
 `;
 
@@ -298,8 +311,9 @@ void main() {
   vec4 depS = texture(uDepS, vUV);
   vec2 paper = texture(uPaper, vUV).rg;
   float salt = texture(uCap, vUV).g;
+  float scrub = texture(uCap, vUV).b;
   float edge = clamp((flow.a - texture(uBlurW, vUV).r) * 3.0, 0.0, 1.0);
-  Exchange ex = exchange(flow, susK, susP, depK, depS, paper.r, salt, edge);
+  Exchange ex = exchange(flow, susK, susP, depK, depS, paper.r, salt, scrub, edge);
 
   float conc = max(susK.a, 1e-6);
   float downFrac = ex.down / conc;
@@ -341,7 +355,10 @@ void main() {
   s += min(flow.b, uAbsorb * (1.0 - s));
   s = max(0.0, s - uCapDry * uEvapMul);
   float salt = cap.g * (1.0 - 0.0015 * uEvapMul);
-  outColor = vec4(s, salt, 0.0, 0.0);
+  // The scrub field left by the lift tool fades as the disturbed sizing
+  // resettles.
+  float scrub = cap.b * 0.94;
+  outColor = vec4(s, salt, scrub, 0.0);
 }
 `;
 
@@ -531,6 +548,24 @@ void main() {
   float reach = mix(saltHash(i0, seed), saltHash(i1, seed), f) * 0.45 + 0.35;
   float grain = smoothstep(1.0, 0.15, r / max(reach, 0.2));
   outCap = vec4(0.0, vPaint.x * grain * 5.0, 0.0, 0.0);
+}
+`;
+
+
+/** The lift tool's scrub marks: soft discs into the capillary texture's
+ * scrub channel. The physics does the actual lifting. */
+export const LIFT_FRAG = `#version 300 es
+precision highp float;
+in vec2 vLocal;
+in vec2 vStampUV;
+flat in vec4 vStamp;
+flat in vec4 vPaint;
+layout(location = 0) out vec4 outCap;    // adds (0, 0, scrub, 0)
+void main() {
+  float r = length(vLocal);
+  if (r > 1.0) discard;
+  float body = smoothstep(1.0, 0.45, r);
+  outCap = vec4(0.0, 0.0, vPaint.x * body, 0.0);
 }
 `;
 
