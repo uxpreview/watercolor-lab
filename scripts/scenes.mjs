@@ -99,7 +99,7 @@ function wetOnWet() {
     ["pig", "phthalo-blue"],
     ["path", [{ x: 470, y: 300 }, { x: 560, y: 275 }, { x: 610, y: 350 }, { x: 540, y: 395 }], 2],
     ["pig", "indian-yellow"],
-    ["path", [{ x: 430, y: 470 }, { x: 520, y: 445 }, { x: 580, y: 480 }], 2],
+    ["path", [{ x: 430, y: 445 }, { x: 520, y: 420 }, { x: 585, y: 455 }], 2],
     ["step", 360],
     ["step", 420, 65],
   ];
@@ -192,11 +192,12 @@ function salt() {
     ["load", 0.75],
     ["pig", "cerulean-blue"],
     ["path", washRows(r, { x0: 215, x1: 845, y0: 186, y1: 512, rows: 5, wobble: 12 })],
-    ["step", 90],
+    ["step", 30],
   ];
-  // Salt is thrown, not placed: scattered across most of the wash.
-  for (let i = 0; i < 8; i++) {
-    program.push(["salt", 280 + r() * 500, 230 + r() * 240]);
+  // Salt is thrown, not placed: scattered across most of the wash, while
+  // the wash is still saturated enough for the brine to do its work.
+  for (let i = 0; i < 10; i++) {
+    program.push(["salt", 270 + r() * 520, 225 + r() * 250]);
   }
   program.push(["step", 360], ["step", 460, 65]);
   return program;
@@ -267,7 +268,7 @@ function landscape() {
 }
 
 export const SCENES = [
-  { name: "flat-wash", about: "A flat cobalt wash on cold press, dried: darkened rim, tide lines, tooth.", seed: 11, program: flatWash() },
+  { name: "flat-wash", about: "A graded cobalt wash on cold press, dried: darkened rim, tide lines, tooth.", seed: 11, program: flatWash() },
   { name: "wet-on-wet", about: "Pigment dropped into a wet sheet: feathered blooms mingling where they meet.", seed: 22, program: wetOnWet() },
   { name: "glaze", about: "Burnt sienna glazed over dried ultramarine: the overlap is a dull pigment neutral.", seed: 33, program: glaze() },
   { name: "granulation", about: "Heavy French ultramarine on rough paper: particulate settling into the tooth.", seed: 44, program: granulation() },

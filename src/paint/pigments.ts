@@ -87,10 +87,12 @@ const SPECS: PigmentSpec[] = [
   { id: "cobalt-violet", name: "Cobalt Violet", code: "PV14", hex: "#8d4f85", scattering: 0.7, strength: 1.1, granulation: 0.75, staining: 0.05, density: 0.8 },
   { id: "dioxazine-violet", name: "Dioxazine Violet", code: "PV23", hex: "#2a163f", scattering: 0.1, strength: 2.5, granulation: 0.0, staining: 0.85, density: 0.12 },
   { id: "ultramarine-violet", name: "Ultramarine Violet", code: "PV15", hex: "#4f4386", scattering: 0.4, strength: 1.3, granulation: 0.65, staining: 0.1, density: 0.6 },
-  { id: "french-ultramarine", name: "French Ultramarine", code: "PB29", hex: "#2e2a96", scattering: 0.45, strength: 1.6, granulation: 0.85, staining: 0.15, density: 0.6 },
-  { id: "cobalt-blue", name: "Cobalt Blue", code: "PB28", hex: "#2d55b0", scattering: 0.7, strength: 1.4, granulation: 0.6, staining: 0.15, density: 0.7 },
+  { id: "french-ultramarine", name: "French Ultramarine", code: "PB29", hex: "#363a92", scattering: 0.45, strength: 1.6, granulation: 0.85, staining: 0.15, density: 0.6 },
+  { id: "cobalt-blue", name: "Cobalt Blue", code: "PB28", hex: "#2f4da8", scattering: 0.7, strength: 1.4, granulation: 0.6, staining: 0.15, density: 0.7 },
   { id: "cerulean-blue", name: "Cerulean Blue", code: "PB35", hex: "#34718f", scattering: 2.3, strength: 1.3, granulation: 0.85, staining: 0.1, density: 0.85 },
-  { id: "phthalo-blue", name: "Phthalo Blue (GS)", code: "PB15:3", hex: "#071f4d", scattering: 0.07, strength: 3.0, granulation: 0.0, staining: 0.9, density: 0.08 },
+  // Green shade means green shade: the G channel must survive, or a phthalo
+  // wash meeting a yellow one makes black instead of the green it must.
+  { id: "phthalo-blue", name: "Phthalo Blue (GS)", code: "PB15:3", hex: "#032f56", scattering: 0.07, strength: 3.0, granulation: 0.0, staining: 0.9, density: 0.08 },
   { id: "prussian-blue", name: "Prussian Blue", code: "PB27", hex: "#122b3b", scattering: 0.12, strength: 2.2, granulation: 0.05, staining: 0.8, density: 0.2 },
   { id: "indanthrone-blue", name: "Indanthrone Blue", code: "PB60", hex: "#26315e", scattering: 0.15, strength: 1.8, granulation: 0.1, staining: 0.7, density: 0.25 },
   // — Greens —

@@ -74,9 +74,12 @@ float gate(vec2 uv, float pHere) {
   // Flow into dry paper is resisted until there is enough water behind it:
   // this is what keeps the edge of a wash crisp instead of feathering out
   // like ink on tissue. The threshold rides the paper's tooth, so the
-  // boundary advances unevenly along the fibers instead of as a level set.
+  // boundary advances unevenly along the fibers — but a well-fed edge beads
+  // smooth, so the fiber modulation fades where water is plentiful. One
+  // uniform fringe on every mark is a signature; wetness history is not.
   float wetThere = texture(uFlow, uv).a;
-  float fiber = 0.55 + 1.1 * texture(uPaper, uv).r;
+  float fiberMix = clamp(1.0 - pHere * 5.0, 0.25, 1.0);
+  float fiber = mix(1.0, 0.55 + 1.1 * texture(uPaper, uv).r, fiberMix);
   float invade = smoothstep(uTension * fiber, uTension * fiber * 2.5, pHere);
   return mix(invade, 1.0, step(0.05, wetThere));
 }
@@ -349,9 +352,11 @@ ${KM_GLSL}
 uniform sampler2D uFlow;
 uniform sampler2D uSusK;
 uniform sampler2D uSusS;
+uniform sampler2D uSusP;
 uniform sampler2D uDepK;
 uniform sampler2D uDepS;
 uniform sampler2D uDried;
+uniform sampler2D uPaper;
 out vec4 outColor;
 void main() {
   vec4 dried = texture(uDried, vUV);
@@ -366,10 +371,21 @@ void main() {
   }
   vec3 K = depK.rgb + susK.rgb;
   vec3 S = texture(uDepS, vUV).rgb + texture(uSusS, vUV).rgb;
+
+  // Granulation is baked at drying time, at the finest scale the paper
+  // carries: a granulating pigment's layer is genuinely thicker in the
+  // tooth's pits and thinner on its peaks. Because it lands in the dried
+  // reflectance itself, the sediment speckle ghosts through every later
+  // glaze — a real sheet never forgets its texture.
+  float gran = clamp(texture(uSusP, vUV).y / max(susK.a, 1e-5), 0.0, 1.0);
+  vec2 paper = texture(uPaper, vUV).rg;
+  float pit = smoothstep(0.62, 0.32, paper.r * 0.55 + paper.g * 0.45);
+  float thickness = 1.0 + gran * (0.9 * pit - 0.35);
+
   vec3 R, T;
-  kmLayer(K, S, 1.0, R, T);
+  kmLayer(K, S, thickness, R, T);
   vec3 folded = kmComposite(R, T, dried.rgb);
-  float depth = dried.a + (K.r + K.g + K.b) / 3.0;
+  float depth = dried.a + thickness * (K.r + K.g + K.b) / 3.0;
   outColor = vec4(folded, depth);
 }
 `;
@@ -490,18 +506,30 @@ in vec2 vStampUV;
 flat in vec4 vStamp;
 flat in vec4 vPaint;
 layout(location = 0) out vec4 outCap;    // adds (0, salt, 0, 0)
+
+float saltHash(float x, float seed) {
+  return fract(sin(x * 127.1 + seed * 311.7) * 43758.5453);
+}
+
 void main() {
-  float r = length(vLocal);
-  if (r > 1.0) discard;
-  // A crystal, not a disc: the reach of the grain varies with angle so the
-  // dissolving footprint wicks into an irregular star.
-  float angle = atan(vLocal.y, vLocal.x);
+  // An irregular amoeba, not a glyph: the grain's reach is value noise over
+  // angle (different per grain), and the whole footprint is stretched along
+  // a random wicking direction — the way brine actually creeps.
   float seed = vPaint.z;
-  float spikes = 3.0 + mod(seed, 4.0);
-  float reach = 0.55 + 0.45 * sin(angle * spikes + seed * 2.39996);
-  reach *= 0.75 + 0.25 * sin(angle * (spikes * 2.0 + 1.0) - seed);
-  float grain = smoothstep(1.0, 0.1, r / max(reach, 0.15));
-  outCap = vec4(0.0, vPaint.x * grain * 2.6, 0.0, 0.0);
+  float wickAngle = seed * 2.39996;
+  vec2 wick = vec2(cos(wickAngle), sin(wickAngle));
+  vec2 lp = vLocal - wick * dot(vLocal, wick) * (0.3 + 0.35 * saltHash(7.0, seed));
+  float r = length(lp);
+  if (r > 1.4) discard;
+  float bins = 5.0 + floor(mod(seed, 3.0));
+  float b = (atan(lp.y, lp.x) / 6.2831853 + 0.5) * bins;
+  float i0 = mod(floor(b), bins);
+  float i1 = mod(i0 + 1.0, bins);
+  float f = fract(b);
+  f = f * f * (3.0 - 2.0 * f);
+  float reach = mix(saltHash(i0, seed), saltHash(i1, seed), f) * 0.45 + 0.35;
+  float grain = smoothstep(1.0, 0.15, r / max(reach, 0.2));
+  outCap = vec4(0.0, vPaint.x * grain * 5.0, 0.0, 0.0);
 }
 `;
 

@@ -74,13 +74,13 @@ export interface Params {
 export const DEFAULT_PARAMS: Params = {
   gravity: 0.14,
   damp: 0.982,
-  slope: 0.09,
+  slope: 0.12,
   tension: 0.02,
-  saltPull: 0.45,
+  saltPull: 0.8,
   evap: 0.00016,
   evapEdge: 0.0016,
   absorb: 0.00045,
-  capDiff: 0.05,
+  capDiff: 0.04,
   capDry: 0.00025,
   velScale: 20,
   advect: 1.0,
@@ -88,7 +88,7 @@ export const DEFAULT_PARAMS: Params = {
   settle: 0.0018,
   granBias: 1.1,
   lift: 0.005,
-  saltLift: 0.2,
+  saltLift: 0.5,
   edgeSettle: 14,
   substeps: 3,
   zoomGrain: 0.012,
@@ -475,9 +475,11 @@ export class Simulation {
         ["uFlow", this.flow.read.texture],
         ["uSusK", this.susK.read.texture],
         ["uSusS", this.susS.read.texture],
+        ["uSusP", this.susP.read.texture],
         ["uDepK", this.depK.read.texture],
         ["uDepS", this.depS.read.texture],
         ["uDried", this.dried.read.texture],
+        ["uPaper", this.paper.texture],
       ]
     );
     this.dried.swap();
