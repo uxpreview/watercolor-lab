@@ -95,7 +95,15 @@ In priority order:
    - **FILM (timelapse export)**: record canvas frames during painting,
      export WebM via MediaRecorder. Watch memory on phones.
 
-3. **Known rough edges**:
+3. **Layout** (PR #7): the controls are a bench under the sheet, sized by
+   `layoutSheet()` in `app.ts` so sheet + strip + bench fit one screen; Focus
+   mode makes the sheet the window with the bench as a drawer; phones get an
+   edge-to-edge desk and collapsible boxes; the Brushes box paints a dab of
+   the current brush and a fine pointer wears the brush's ring. If the bench
+   grows taller, the sheet shrinks to keep the screen: mind that when adding
+   controls. UI copy carries no em dashes (Ryan's call); keep it that way.
+
+4. **Known rough edges**:
    - ~~Saved sheets are dimension-keyed~~ — fixed: the dried layer is
      resampled to fit on restore (`src/data/resample.ts`).
    - ~~Lift on dry paint does nothing, silently~~ — fixed: a note floats

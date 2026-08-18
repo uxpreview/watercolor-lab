@@ -186,7 +186,7 @@ export function createPalette(initialId: string): PaletteHandle {
         class: "chip",
         type: "button",
         role: "option",
-        title: `${pigment.name} — ${pigment.code} · ${handlingNote(pigment)}. Hold for details.`,
+        title: `${pigment.name}: ${pigment.code} · ${handlingNote(pigment)}. Hold for details.`,
         "aria-label": pigment.name,
         "aria-selected": pigment.id === current.id,
         // A press that was held is a question, not a choice: the click that

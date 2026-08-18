@@ -194,10 +194,10 @@ export function pigmentFacts(p: Pigment): PigmentFact[] {
 export function handlingSentence(p: Pigment): string {
   const cover =
     p.scattering >= 1.2
-      ? "Opaque — it hides the paper and lightens what it glazes over"
+      ? "Opaque: it hides the paper and lightens what it glazes over"
       : p.scattering >= 0.4
-        ? "Semi-transparent — a wash lets the sheet through, a heavy load does not"
-        : "Transparent — every glaze shows what is under it";
+        ? "Semi-transparent: a wash lets the sheet through, a heavy load does not"
+        : "Transparent: every glaze shows what is under it";
   const move =
     p.granulation >= 0.5 && p.density >= 0.7
       ? "settles fast and hard into the tooth, so a wash calms and granulates"
@@ -208,7 +208,7 @@ export function handlingSentence(p: Pigment): string {
           : "flows evenly and dries smooth";
   const lift =
     p.staining >= 0.65
-      ? "and it stains — once settled it will not lift"
+      ? "and it stains: once settled it will not lift"
       : p.staining >= 0.35
         ? "and it lifts partly from damp paper"
         : "and it lifts clean from damp paper";
