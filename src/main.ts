@@ -50,7 +50,7 @@ function experimentHead(): HTMLElement {
       el(
         "p",
         { class: "t-lede" },
-        "Real watercolor, simulated: water flows across the sheet, pigment rides it and settles, and the paper decides the rest. Thirty-six real pigments, wet-on-wet blooms, granulation, backruns and salt — all live, on your GPU."
+        "Real watercolor, simulated: water flows across the sheet, pigment rides it and settles, and the paper decides the rest. Thirty-six real pigments, wet-on-wet blooms, granulation, backruns and salt, all live on your GPU."
       )
     )
   );
@@ -74,7 +74,7 @@ const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
   {
     k: "The color is physics",
     v: [
-      "Every swatch and every wash is Kubelka-Munk optics from the absorption and scattering of a real pigment — not alpha blending. Mixing on the sheet and mixing in the well are the same arithmetic.",
+      "Every swatch and every wash is Kubelka-Munk optics from the absorption and scattering of a real pigment, not alpha blending. Mixing on the sheet and mixing in the well are the same arithmetic.",
     ],
   },
   {

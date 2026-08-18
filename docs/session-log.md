@@ -262,3 +262,45 @@ a granulating one says "granulat…", an opaque one opens with "Opaque". A
 held press swallows the click that follows it, so opening a card never
 changes the brush. Escape, the close button, a tap anywhere else, or
 choosing another pan closes it; focus returns to the pan.
+
+## The studio in one screen
+
+Ryan's note after using it: the rail made him scroll to see all the options,
+and he wanted the sheet bigger on both a desk and a phone. Three changes:
+
+**The bench.** The controls moved from a rail beside the sheet to a band
+beneath it: an action strip (Dry, Backlight, Undo, Save, Export, Clear, and
+Focus at the far end), then four boxes left to right in the order a painter
+reaches for things: Pigments (36 pans in three rows of twelve), Brushes
+(tools, sliders, the dab), Paper (with Alive), X-ray. The sheet is sized by
+`layoutSheet()` in app.ts, not CSS: the biggest 3:2 that fits the studio's
+width and leaves the strip and the bench in view beneath it, measured from
+their real heights each layout. CSS could not do it: a canvas is a replaced
+element, and with an explicit width a max-height stretches it rather than
+giving height back to width. On a 1440×900 laptop that is a 694×462 sheet
+with every control in reach; on 1920×1080, 922×615; a bigger window buys a
+bigger sheet.
+
+**Focus.** The button on the strip (and Escape to leave). The desk becomes
+the window, the sheet the biggest that fits above the strip, the bench a
+drawer that slides up over the sheet from a Tools button. On a phone the
+strip scrolls sideways above the drawer button, and the sheet is 372×558 of a
+390×844 screen instead of 356×534 in the page. Outside focus, the phone's
+desk now runs edge to edge and every box under it is a collapsible: Pigments
+and Brushes open, the rest closed, so the sheet plus its two working boxes is
+what a first screen holds.
+
+**The dab and the ring.** The sliders were numbers with no picture. The
+Brushes box now paints one dab of the current brush by the chip's own KM
+maths: the brush's radius against its own full size, water widening and
+softening the rim and thinning the film, pigment load setting the film's
+concentration, and a line beneath with the footprint as a share of the
+sheet's width, which is the number that transfers. Salt shows as grains at
+its throw radius; the water and lift brushes as a damp spot. Under a fine
+pointer the sheet also wears the brush's true footprint as a hairline ring
+that follows the pointer, so size reads before a mark is made (the ring is
+the brush; the wash it leaves spreads with the water, which is the point).
+
+Also: em dashes are gone from every string a visitor reads (page, hints,
+cards, meta, the share card, the README). The engineering log keeps its own
+punctuation.

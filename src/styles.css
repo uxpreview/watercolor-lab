@@ -267,7 +267,7 @@ label,
 .studio {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  gap: 16px;
   padding-top: 40px;
   padding-bottom: 40px;
   align-items: start;
@@ -278,33 +278,37 @@ label,
     padding-bottom: 56px;
   }
 }
-@media (min-width: 1080px) {
-  .studio {
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
-}
 
 .easel {
   position: relative;
+  /* Wraps the sheet, which layoutSheet() sizes; a small sheet on a big desk
+     would otherwise sit in a field of empty surface. */
+  width: fit-content;
+  max-width: 100%;
+  justify-self: center;
   background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
-  padding: clamp(16px, 3vw, 44px);
+  padding: clamp(12px, 1.5vw, 24px);
   display: grid;
   place-items: center;
   transition: background-color 0.6s var(--ease-quint);
 }
 /* The sheet itself. The aspect matches the simulation grid exactly, so a
    sim pixel is never stretched. Paper on a desk casts a shadow; nothing else
-   on the site does, and nothing else here does either. */
+   on the site does, and nothing else here does either.
+
+   Sizing: as wide as the desk allows, but never taller than the window can
+   show together with the action strip and the bench beneath it, so the sheet
+   is the biggest 3:2 that keeps every control in reach without scrolling. */
 .sheet {
+  /* Width and height are set by layoutSheet() in app.ts, see the note there;
+     the aspect ratio here is the fallback before the first layout. */
   width: 100%;
-  max-width: 1180px;
   aspect-ratio: 3 / 2;
 }
 .sheet.is-portrait {
   aspect-ratio: 2 / 3;
-  max-width: 560px;
 }
 .sheet {
   display: block;
@@ -349,6 +353,136 @@ label,
   }
 }
 
+/* The brush's footprint under a fine pointer: a hairline ring in the ink,
+   sized to the true radius on the sheet. Never catches the pointer. */
+.brush-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 1.5px solid rgba(0, 63, 72, 0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 0 1px rgba(254, 246, 233, 0.6);
+  will-change: transform;
+}
+.brush-ring.is-visible {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .easel > .sheet {
+    cursor: none;
+  }
+}
+
+/* Focus: the sheet takes the window, the bench becomes a drawer. */
+.focus-bar {
+  display: none;
+}
+body.is-focus {
+  overflow: hidden;
+}
+body.is-focus .easel {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  width: auto;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  padding: 16px;
+  align-items: start;
+}
+/* The action strip rides along into focus, above the drawer button. */
+body.is-focus .action-bar {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  right: 220px;
+  z-index: 23;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+body.is-focus .action-bar .btn {
+  box-shadow: 0 6px 24px rgba(24, 37, 40, 0.18);
+  white-space: nowrap;
+}
+body.is-focus .action-bar .btn:not(.btn-primary):not(.is-active) {
+  background: var(--bg);
+}
+body.is-focus .action-bar .action-spacer,
+body.is-focus .action-bar .btn:last-child {
+  display: none;
+}
+@media (max-width: 720px) {
+  body.is-focus .easel {
+    padding: 8px;
+  }
+  /* Stacked on a phone: the strip scrolls sideways above the focus buttons. */
+  body.is-focus .action-bar {
+    display: flex;
+    left: 8px;
+    right: 8px;
+    bottom: 64px;
+  }
+  body.is-focus .focus-bar {
+    right: 8px;
+    bottom: 12px;
+  }
+  body.is-focus .bench {
+    padding-bottom: 128px;
+  }
+}
+body.is-focus .focus-bar {
+  display: flex;
+  gap: 8px;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 23;
+}
+body.is-focus .focus-bar .btn {
+  box-shadow: 0 6px 24px rgba(24, 37, 40, 0.18);
+}
+body.is-focus .focus-bar .btn:not(.is-active) {
+  background: var(--bg);
+}
+body.is-focus .bench {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 22;
+  max-height: min(70vh, 720px);
+  overflow: auto;
+  padding: 16px 16px 72px;
+  background: var(--bg);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -12px 40px rgba(24, 37, 40, 0.16);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition:
+    transform var(--dur-mask) var(--ease-quint),
+    visibility 0s linear var(--dur-mask);
+}
+body.is-focus.is-drawer-open .bench {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--dur-mask) var(--ease-quint),
+    visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.is-focus .bench {
+    transition: none;
+  }
+}
+/* Nothing else on the page needs to be reachable in focus. */
+body.is-focus .app-header,
+body.is-focus .app-footer {
+  visibility: hidden;
+}
+
 /* The lightbox: the desk goes dark so the lit sheet is the brightest thing
    on screen, same move as the calibration room in the eye-tracking rig. */
 body.is-backlit .easel {
@@ -358,18 +492,33 @@ body.is-backlit .sheet {
   box-shadow: 0 0 60px rgba(255, 244, 214, 0.12);
 }
 
-/* --- Toolbox ------------------------------------------------------------ */
-.toolbox {
-  display: flex;
-  flex-direction: column;
+/* --- The bench ------------------------------------------------------------ */
+/* Every control in one band under the sheet: pigments, brushes, the sheet's
+   own settings, and the actions. On a desk it is four columns and reads left
+   to right in the order a painter reaches for things; on a phone it is one
+   column of collapsibles. */
+.bench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   min-width: 0;
+}
+@media (min-width: 720px) {
+  .bench {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1180px) {
+  .bench {
+    grid-template-columns: minmax(440px, 1.6fr) minmax(320px, 1.1fr) minmax(220px, 0.8fr) minmax(240px, 0.9fr);
+  }
 }
 .box {
   background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
   padding: 16px;
+  min-width: 0;
 }
 .box-title {
   font-size: 12px;
@@ -379,12 +528,58 @@ body.is-backlit .sheet {
   color: var(--muted);
   margin: 0 0 12px;
 }
+/* On a phone the title is the handle. */
+details.box > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+details.box > summary::-webkit-details-marker {
+  display: none;
+}
+details.box > summary::after {
+  content: "+";
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--strong);
+}
+details.box[open] > summary {
+  margin-bottom: 12px;
+}
+details.box[open] > summary::after {
+  content: "−";
+}
+.sub-row + .sub-row {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.sub-title {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--body-2);
+  margin: 0 0 8px;
+}
 
 /* Palette */
 .palette-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 7px;
+}
+@media (min-width: 1180px) {
+  .palette-grid {
+    grid-template-columns: repeat(12, 1fr);
+    gap: 5px;
+  }
+  .chip {
+    border-radius: 6px;
+  }
 }
 .chip {
   -webkit-touch-callout: none;
@@ -613,7 +808,7 @@ body.is-backlit .sheet {
   height: 30px;
 }
 .pigment-caption {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
 }
@@ -638,7 +833,7 @@ body.is-backlit .sheet {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 8px 2px 6px;
+  padding: 6px 2px 5px;
   background: transparent;
   border: 1.5px solid var(--edge);
   border-radius: 9px;
@@ -667,7 +862,7 @@ body.is-backlit .sheet {
 .slider-col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-top: 14px;
 }
 .slider {
@@ -697,10 +892,59 @@ body.is-backlit .sheet {
   gap: 7px;
   flex-wrap: wrap;
 }
-.action-col {
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.action-spacer {
+  flex: 1;
+}
+.action-bar .btn {
+  padding: 9px 16px;
+}
+@media (max-width: 720px) {
+  .action-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .action-spacer {
+    display: none;
+  }
+}
+/* Sliders beside the dab. */
+.brush-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 12px;
+  align-items: start;
+  margin-top: 10px;
+}
+.brush-controls .slider-col {
+  margin-top: 0;
+}
+.brush-preview {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+}
+.brush-preview-canvas {
+  width: 84px;
+  height: 84px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: block;
+}
+.brush-preview-line {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
 }
 
 .btn {
@@ -886,8 +1130,16 @@ body.is-xray .sheet {
 }
 
 @media (max-width: 720px) {
+  /* The desk runs edge to edge; the sheet gets every pixel the phone has. */
   .easel {
-    padding: 10px;
+    width: auto;
+    max-width: none;
+    justify-self: stretch;
+    padding: 8px;
+    margin: 0 -16px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
   }
   .exp-head {
     padding-top: 28px;
@@ -898,5 +1150,12 @@ body.is-xray .sheet {
   }
   .tool-row {
     grid-template-columns: repeat(4, 1fr);
+  }
+  .brush-controls {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+  .brush-preview-canvas {
+    width: 84px;
+    height: 84px;
   }
 }

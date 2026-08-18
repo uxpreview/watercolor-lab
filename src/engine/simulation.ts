@@ -112,10 +112,10 @@ const UNDO_DEPTH = 3;
 export type XrayField = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export const XRAY_FIELDS: Record<XrayField, { id: string; name: string; what: string; scale: number; unit: string }> = {
   0: { id: "paint", name: "Paint", what: "The painting as it looks.", scale: 1, unit: "" },
-  1: { id: "water", name: "Water", what: "Standing water on the sheet — the film that flows and carries pigment.", scale: 0.12, unit: "depth" },
-  2: { id: "wet", name: "Wet", what: "How wet the surface is, 0 to 1 — the wash boundary is where it drops.", scale: 0.6, unit: "wetness" },
+  1: { id: "water", name: "Water", what: "Standing water on the sheet: the film that flows and carries pigment.", scale: 0.12, unit: "depth" },
+  2: { id: "wet", name: "Wet", what: "How wet the surface is, 0 to 1. The wash boundary is where it drops.", scale: 0.6, unit: "wetness" },
   3: { id: "suspended", name: "Suspended", what: "Pigment riding in the water, not yet settled.", scale: 0.15, unit: "concentration" },
-  4: { id: "settled", name: "Settled", what: "Pigment settled on the sheet but not yet dried — what the lift tool can reach.", scale: 0.06, unit: "thickness" },
+  4: { id: "settled", name: "Settled", what: "Pigment settled on the sheet but not yet dried: what the lift tool can reach.", scale: 0.06, unit: "thickness" },
   5: { id: "paper", name: "Paper", what: "Water inside the paper's fibres, where backruns travel. Salt grains in vermillion.", scale: 0.03, unit: "saturation" },
   6: { id: "dried", name: "Dried", what: "Everything cured into the sheet, as optical depth. Permanent.", scale: 1.0, unit: "depth" },
 };
