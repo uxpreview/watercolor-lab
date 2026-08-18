@@ -501,7 +501,7 @@ void main() {
   float reach = 0.55 + 0.45 * sin(angle * spikes + seed * 2.39996);
   reach *= 0.75 + 0.25 * sin(angle * (spikes * 2.0 + 1.0) - seed);
   float grain = smoothstep(1.0, 0.1, r / max(reach, 0.15));
-  outCap = vec4(0.0, vPaint.x * grain * 1.8, 0.0, 0.0);
+  outCap = vec4(0.0, vPaint.x * grain * 2.6, 0.0, 0.0);
 }
 `;
 
@@ -565,8 +565,10 @@ void main() {
   // lights it with the paper's relief, and where paint has dried, the tooth
   // shows through it: every real wash reads the sheet's texture, granulating
   // or not, because deposit is physically thicker in the pits.
+  // Weighted toward the structured height octaves rather than the 1px fine
+  // grain: pigment texture clumps at fiber scale, it is not white noise.
   float driedPaint = clamp(dried.a * 1.6, 0.0, 1.0);
-  float tooth = 1.0 + ((paper.g - 0.5) * 0.26 + (0.5 - paper.r) * 0.2) * driedPaint;
+  float tooth = 1.0 + ((paper.g - 0.5) * 0.12 + (0.5 - paper.r) * 0.26) * driedPaint;
   vec3 base = dried.rgb * tooth * relief * microGrain * illum * wetDarken;
 
   // Live wet layer: suspension plus fresh deposit as one KM film. The

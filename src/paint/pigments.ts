@@ -80,7 +80,7 @@ const SPECS: PigmentSpec[] = [
   { id: "cadmium-orange", name: "Cadmium Orange", code: "PO20", hex: "#e0731f", scattering: 1.9, strength: 1.3, granulation: 0.1, staining: 0.3, density: 0.65 },
   { id: "pyrrol-scarlet", name: "Pyrrol Scarlet", code: "PR255", hex: "#c72f1a", scattering: 0.35, strength: 1.6, granulation: 0.0, staining: 0.75, density: 0.2 },
   { id: "cadmium-red", name: "Cadmium Red", code: "PR108", hex: "#b52a2c", scattering: 1.8, strength: 1.3, granulation: 0.15, staining: 0.3, density: 0.7 },
-  { id: "quinacridone-rose", name: "Quinacridone Rose", code: "PV19", hex: "#a02050", scattering: 0.08, strength: 1.8, granulation: 0.0, staining: 0.8, density: 0.1 },
+  { id: "quinacridone-rose", name: "Quinacridone Rose", code: "PV19", hex: "#97203f", scattering: 0.08, strength: 1.8, granulation: 0.0, staining: 0.8, density: 0.1 },
   { id: "alizarin-crimson", name: "Alizarin Crimson", code: "PR83", hex: "#6e1423", scattering: 0.1, strength: 2.2, granulation: 0.0, staining: 0.75, density: 0.12 },
   { id: "quinacridone-burnt-orange", name: "Quin. Burnt Orange", code: "PO48", hex: "#8f4522", scattering: 0.15, strength: 1.5, granulation: 0.15, staining: 0.7, density: 0.2 },
   // — Violets and blues —

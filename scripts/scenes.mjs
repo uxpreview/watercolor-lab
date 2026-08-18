@@ -90,16 +90,16 @@ function wetOnWet() {
     ["path", washRows(r, { x0: 150, x1: 910, y0: 120, y1: 580, rows: 7, wobble: 12 })],
     ["step", 70],
     ["tool", "round"],
-    ["size", 0.52],
-    ["water", 0.55],
+    ["size", 0.62],
+    ["water", 0.7],
     ["load", 0.95],
-    // Close enough that the blooms meet and mingle.
+    // The blue is dropped half into the rose so the two mingle in the water.
     ["pig", "quinacridone-rose"],
-    ["path", [{ x: 385, y: 300 }, { x: 435, y: 330 }, { x: 405, y: 385 }], 2],
+    ["path", [{ x: 350, y: 280 }, { x: 430, y: 315 }, { x: 385, y: 390 }, { x: 330, y: 340 }], 2],
     ["pig", "phthalo-blue"],
-    ["path", [{ x: 555, y: 285 }, { x: 605, y: 315 }, { x: 585, y: 380 }], 2],
+    ["path", [{ x: 470, y: 300 }, { x: 560, y: 275 }, { x: 610, y: 350 }, { x: 540, y: 395 }], 2],
     ["pig", "indian-yellow"],
-    ["path", [{ x: 465, y: 445 }, { x: 520, y: 430 }], 2],
+    ["path", [{ x: 430, y: 470 }, { x: 520, y: 445 }, { x: 580, y: 480 }], 2],
     ["step", 360],
     ["step", 420, 65],
   ];
@@ -224,77 +224,45 @@ function backruns() {
 
 function landscape() {
   const r = rng(808);
+  // Dusk over the hills: the whole sky blended wet-on-wet (the engine's
+  // best trick), then one dark ragged ridge on the dried sheet. Two stages;
+  // everything the medium is good at, nothing it is bad at.
   const program = [
     ["paper", "cold-press"],
-    // Sky: wet the upper sheet, float in cerulean, a breath of rose above
-    // the horizon.
     ["tool", "water"],
     ["size", 0.9],
-    ["water", 0.95],
-    ["path", washRows(r, { x0: 95, x1: 962, y0: 75, y1: 385, rows: 6, wobble: 10 })],
+    ["water", 0.9],
+    ["path", washRows(r, { x0: 105, x1: 950, y0: 55, y1: 500, rows: 6, wobble: 10 })],
     ["tool", "round"],
-    ["size", 0.68],
-    ["water", 0.6],
-    ["load", 0.4],
-    ["pig", "cerulean-blue"],
-    ["path", washRows(r, { x0: 130, x1: 930, y0: 98, y1: 160, rows: 2, tilt: 0.012 })],
-    ["load", 0.14],
+    ["size", 0.7],
+    ["water", 0.55],
+    // Gold low, rose through the middle, cobalt evening blue above --
+    // floated in while the sheet is wet so they grade into each other.
+    ["load", 0.2],
+    ["pig", "indian-yellow"],
+    ["path", washRows(r, { x0: 210, x1: 850, y0: 340, y1: 425, rows: 2 })],
+    ["load", 0.16],
     ["pig", "quinacridone-rose"],
-    ["path", [{ x: 140, y: 268 }, { x: 920, y: 262 }]],
-    ["step", 260],
-    ["step", 420, 65],
+    ["path", washRows(r, { x0: 185, x1: 880, y0: 215, y1: 300, rows: 2 })],
+    ["load", 0.3],
+    ["pig", "cobalt-blue"],
+    ["path", washRows(r, { x0: 160, x1: 900, y0: 70, y1: 185, rows: 3 })],
+    ["step", 200],
+    ["step", 560, 65],
   ];
-  // Mountain: a low two-peak ridge, three overlapping passes.
-  const ridge = (x) =>
-    372 - 88 * Math.exp(-Math.pow((x - 415) / 155, 2)) - 46 * Math.exp(-Math.pow((x - 705) / 115, 2));
-  program.push(["size", 0.5], ["water", 0.5], ["load", 0.72], ["pig", "french-ultramarine"]);
-  for (let pass = 0; pass < 3; pass++) {
+  // The ridge: near-black neutral, hard ragged edge against the lit sky.
+  const ridgeTop = (x) =>
+    502 - 56 * Math.exp(-Math.pow((x - 405) / 160, 2)) - 30 * Math.exp(-Math.pow((x - 700) / 100, 2));
+  program.push(["size", 0.42], ["water", 0.38], ["load", 0.9], ["pig", "neutral-tint"]);
+  for (let pass = 0; pass < 5; pass++) {
     const line = [];
-    for (let x = 150; x <= 910; x += 22) {
-      line.push({ x: x + (r() - 0.5) * 8, y: Math.min(398, ridge(x) + 5 + pass * 12 + (r() - 0.5) * 6) });
+    for (let x = 150; x <= 905; x += 20) {
+      line.push({ x: x + (r() - 0.5) * 8, y: Math.min(575, ridgeTop(x) + 4 + pass * 16 + (r() - 0.5) * 5) });
     }
     program.push(["path", line]);
   }
-  program.push(["path", [{ x: 158, y: 395 }, { x: 902, y: 396 }]]);
-  program.push(["step", 200], ["step", 420, 65]);
-  // Water: pale pulls with dry-paper sparkle gaps, then soft reflections.
-  program.push(
-    ["load", 0.3],
-    ["water", 0.6],
-    ["pig", "cobalt-blue"],
-    ["path", [{ x: 170, y: 447 }, { x: 888, y: 442 }]],
-    ["path", [{ x: 858, y: 490 }, { x: 205, y: 495 }]],
-    ["path", [{ x: 262, y: 542 }, { x: 798, y: 538 }]],
-    ["load", 0.26],
-    ["pig", "french-ultramarine"],
-    ["path", [{ x: 412, y: 418 }, { x: 424, y: 508 }]],
-    ["path", [{ x: 692, y: 415 }, { x: 700, y: 482 }]],
-    ["step", 260],
-    ["step", 460, 65]
-  );
-  // Foreground: a quiet green bank and a handful of rigger grasses.
-  program.push(
-    ["tool", "round"],
-    ["size", 0.55],
-    ["water", 0.5],
-    ["load", 0.55],
-    ["pig", "sap-green"],
-    ["path", washRows(r, { x0: 130, x1: 930, y0: 606, y1: 664, rows: 2, wobble: 10 })],
-    ["step", 120],
-    ["tool", "rigger"],
-    ["size", 0.42],
-    ["water", 0.35],
-    ["load", 0.9]
-  );
-  const grassPigs = ["sap-green", "sap-green", "burnt-sienna", "sap-green", "hookers-green", "burnt-sienna"];
-  let gx = 175;
-  for (let i = 0; i < grassPigs.length; i++) {
-    gx += 18 + r() * 30;
-    const h = 42 + r() * 34;
-    const lean = (r() - 0.5) * 26;
-    program.push(["pig", grassPigs[i]], ["path", [{ x: gx, y: 668 }, { x: gx + lean, y: 668 - h }]]);
-  }
-  program.push(["step", 90], ["step", 380, 65]);
+  program.push(["path", [{ x: 158, y: 572 }, { x: 898, y: 573 }]]);
+  program.push(["step", 60], ["step", 520, 65]);
   return program;
 }
 

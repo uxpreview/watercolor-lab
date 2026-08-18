@@ -304,7 +304,7 @@ export class Simulation {
       const base = i * 8;
       this.splatData[base] = x + Math.cos(angle) * dist;
       this.splatData[base + 1] = this.simHeight - (y + Math.sin(angle) * dist);
-      this.splatData[base + 2] = 2.6 + rand() * 4.2;
+      this.splatData[base + 2] = 4.0 + rand() * 4.5;
       this.splatData[base + 3] = 0;
       this.splatData[base + 4] = 0.35 + rand() * 0.5; // salt amount
       this.splatData[base + 5] = 0;

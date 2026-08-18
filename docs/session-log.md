@@ -70,4 +70,69 @@ survives the rescale, and a two-worker pool in scripts/shoot.mjs with
 ## The tuning rounds
 
 Recorded after each visual pass; the defaults in `DEFAULT_PARAMS` are the
-result. (Appended below as the rounds happen.)
+result. Each round: render the eight scripted scenes headlessly, put the
+screenshots in front of three independent critics (a watercolorist for
+technique, a color scientist for pigment fidelity, an image-forensics pass
+for digital tells), fix what they agree on, render again.
+
+**Round 1 → 2.** First renders looked like soft airbrush: washes spread and
+graded but had no watercolor signatures. Diagnosis: pigment settled so fast
+(settle 0.0065) that nothing stayed in suspension long enough to ride the
+drying currents — every transport effect (edge darkening, granulation
+migration, backrun rims) needs pigment that is still mobile when the water
+pattern changes. Cut settle to 0.0018, raised lift, tension threshold now
+rides the paper tooth (organic fibrous wash edges instead of a level-set
+boundary), paper slope raised 3× so tooth drives micro-currents, salt made
+osmotically real. Round 2 washes grew ragged fiber edges and mottled
+interiors and started to read as paint.
+
+**Round 2 → 3.** The critics' consensus on round 2, in order of damage:
+(1) no dried rim anywhere — the single loudest watercolor signature;
+(2) every mark wore the same soft fringe regardless of wetness history;
+(3) the granulation test had no granulation; (4) backruns had the pale
+bloom but not the dark cauliflower rim that *is* a backrun; (5) tints
+rotated hue toward cyan and gained chroma in dilution (measured: cobalt
+H217→H191, cerulean H203→H183 with saturation rising) — the artifact of a
+flat per-channel S; (6) ten masstones keyed too bright ("no pigment is
+ever allowed to be dark"); (7) periodic stroke-row seams (53px spacing,
+measured) and identical rounded-rectangle footprints across scenes.
+
+Fixes, mapped to mechanisms rather than symptoms:
+- **Drying-front deposition** (`edgeSettle`): settling is multiplied where
+  local wetness exceeds its blurred neighborhood — the boundary of the wet
+  region. One term produces the dried rim, mid-wash tide lines, and the
+  backrun cauliflower, because they are all the same physics.
+- **Per-channel scattering**: S is now weighted toward the channels the
+  pigment reflects (real pigments scatter selectively near their
+  reflectance peak), so backscatter carries the pigment's own hue and
+  tints walk toward chalky paper-white instead of toward the least-absorbed
+  channel. The per-channel K/S masstone relation still holds exactly, so
+  the round-trip test was untouched.
+- **Tinting strength** per pigment (K and S scaled together): phthalos and
+  alizarin now reach near-black masstones in heavy washes.
+- Masstones re-keyed dull and dark per the measured findings (alizarin to
+  deep maroon, burnt sienna out of cadmium-orange territory, cerulean
+  opaque and chalky, one lemon in the yellow row instead of three).
+- Granulation valley bias squared plus peak-biased lifting; dry-brush
+  contact made a near-binary threshold on the tooth (hard flecks).
+- Scene scripts rewritten data-driven with a seeded RNG: jittered row
+  spacing, wavy travel, varied endpoints, per-scene paper seed — nothing
+  periodic, no two footprints alike.
+
+**Round 3 → final.** Round 3 confirmed the mechanisms: the flat wash grew a
+dried rim, the backrun bloom grew its outline, the glaze seam vanished, dry
+brush went hard-edged. Residual fixes: render speckle rebalanced from the
+1px grain channel toward the structured height octaves (pigment texture
+clumps at fiber scale, it is not white noise), salt grains enlarged into
+angular stars with real reach, quinacridone rose nudged off magenta, and
+the wet-on-wet scene re-choreographed so the blooms actually meet and
+mingle.
+
+**The hero figure took eight attempts** — not because the physics failed
+but because scripted *painting* is hard: a representational landscape kept
+collapsing into stacked ribbons as every stroke spread twice its brush
+radius at half-resolution and closed the gaps a composition needs. The
+lesson that stuck: choreograph what the medium is good at. The final hero
+is a wet-blended dusk sky (the engine's best trick, three pigments floated
+into one wet field) over a single dark ragged ridge — two stages, no
+fussy gaps, robust to spread.

@@ -15,7 +15,7 @@ EXP-041 in [the Lab](https://ryankm.com/lab).
 Vanilla TypeScript and Vite, zero runtime dependencies, no framework, no
 server, no analytics.
 
-![A watercolor landscape painted by the simulator's own scripted brush: a graded sky, a granulating ultramarine ridge, pale water with dry-paper sparkle, rigger grasses.](docs/figures/landscape.png)
+![A dusk painted by the simulator's own scripted brush: cobalt evening blue blending wet-on-wet through rose into gold at the horizon, over a dark ragged ridge.](docs/figures/landscape.png)
 
 Every figure in this README is painted by the simulator itself, headlessly,
 by `npm run figures` — the same brush model and physics a pointer drives, so
