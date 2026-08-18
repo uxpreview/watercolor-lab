@@ -1,0 +1,414 @@
+/* Watercolor Lab, wearing the ryankm.com design system.
+ *
+ * This tool is EXP-041 in the Lab and is hosted on its own subdomain, so the
+ * page does the work the site's /lab/<slug> route normally does: the trail
+ * back up, the claim in display type, the lede, then the experiment itself.
+ *
+ * Colors, radii, easings and the measure come from src/tokens.css, a vendored
+ * copy of the site's tokens that is never edited on this side.
+ *
+ * One deliberate departure from the other experiments: the sheet of paper is
+ * the whole point of this page, so the studio gives it the biggest, calmest
+ * field it can — a desk of --surface, one shadow under the sheet (the site's
+ * cards cast none, but a sheet of paper lying on a desk does), and the paint
+ * box in a narrow rail beside it.
+ */
+
+@import "./tokens.css";
+
+/* The shared container edge, same derivation as the other Lab experiments:
+   45% of --strong into --line reaches the 3:1 a component boundary needs on
+   this cream. */
+:root {
+  --edge: color-mix(in srgb, var(--strong) 45%, var(--line));
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+a,
+button,
+label,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+.container {
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--maxw);
+  padding: 0 24px;
+}
+@media (min-width: 768px) {
+  .container {
+    padding: 0 40px;
+  }
+}
+
+/* --- Site bar ----------------------------------------------------------- */
+.site-bar {
+  border-bottom: 1px solid var(--rule);
+}
+.bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--strong);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wordmark .dot {
+  display: inline-block;
+  transform-origin: 50%;
+  animation: dot-pop 0.36s var(--ease-expo) both;
+}
+@keyframes dot-pop {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.bar-back {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-decoration: none;
+}
+.bar-back:hover {
+  color: var(--accent-ink);
+}
+
+/* --- Intro -------------------------------------------------------------- */
+.intro {
+  padding-top: 34px;
+  padding-bottom: 8px;
+}
+.intro h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 4vw, 44px);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  color: var(--strong);
+  margin: 0 0 10px;
+}
+.lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--body-2);
+}
+.lede,
+.footnote {
+  text-wrap: pretty;
+}
+
+/* --- Studio ------------------------------------------------------------- */
+.studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  padding-top: 24px;
+  padding-bottom: 8px;
+  align-items: start;
+}
+@media (min-width: 1080px) {
+  .studio {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+.easel {
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-card);
+  padding: clamp(16px, 3vw, 44px);
+  display: grid;
+  place-items: center;
+  transition: background-color 0.6s var(--ease-quint);
+}
+/* The sheet itself. The aspect matches the simulation grid exactly, so a
+   sim pixel is never stretched. Paper on a desk casts a shadow; nothing else
+   on the site does, and nothing else here does either. */
+.sheet {
+  width: 100%;
+  max-width: 1180px;
+  aspect-ratio: 3 / 2;
+  display: block;
+  border-radius: 2px;
+  box-shadow:
+    0 1px 2px rgba(24, 37, 40, 0.18),
+    0 10px 34px rgba(24, 37, 40, 0.16);
+  cursor: crosshair;
+  touch-action: none;
+}
+/* The lightbox: the desk goes dark so the lit sheet is the brightest thing
+   on screen, same move as the calibration room in the eye-tracking rig. */
+body.is-backlit .easel {
+  background: #10282d;
+}
+body.is-backlit .sheet {
+  box-shadow: 0 0 60px rgba(255, 244, 214, 0.12);
+}
+
+/* --- Toolbox ------------------------------------------------------------ */
+.toolbox {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.box {
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-card);
+  padding: 16px;
+}
+.box-title {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+/* Palette */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+}
+.chip {
+  padding: 0;
+  border: 1.5px solid var(--edge);
+  border-radius: 7px;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s var(--ease-expo);
+}
+.chip:hover {
+  border-color: var(--strong);
+  transform: translateY(-1px);
+}
+.chip[aria-selected="true"] {
+  border-color: var(--accent-warm);
+  box-shadow: 0 0 0 2px var(--accent-warm);
+  transform: translateY(-1px) scale(1.06);
+}
+.chip-swatch {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.pigment-caption {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.pigment-name {
+  font-weight: 600;
+  color: var(--strong);
+  font-size: 14px;
+}
+.pigment-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Brushes */
+.tool-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 2px 6px;
+  background: transparent;
+  border: 1.5px solid var(--edge);
+  border-radius: 9px;
+  color: var(--body-2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+.tool svg {
+  width: 22px;
+  height: 22px;
+}
+.tool-label {
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+.tool:hover {
+  border-color: var(--strong);
+  color: var(--strong);
+}
+.tool.is-active {
+  border-color: var(--accent);
+  background: var(--tint);
+  color: var(--accent-ink);
+}
+
+.slider-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.slider {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.slider-label {
+  font-size: 13px;
+  color: var(--body-2);
+}
+.slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Paper + actions */
+.paper-row {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.action-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.005em;
+  background: transparent;
+  color: var(--strong);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-chip);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+.btn:hover {
+  border-color: var(--strong);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.btn-small {
+  padding: 7px 14px;
+}
+.btn.is-active,
+.paper-row [aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Two-step clear, in the shared confirm recipe: both labels stacked in one
+   grid cell so arming never reflows the column. */
+.confirm-btn {
+  display: grid;
+}
+.confirm-btn > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.confirm-btn .confirm-armed {
+  visibility: hidden;
+}
+.confirm-btn.is-armed {
+  border-color: var(--signal-bad, #bf3400);
+  color: var(--signal-bad, #bf3400);
+}
+.confirm-btn.is-armed .confirm-rest {
+  visibility: hidden;
+}
+.confirm-btn.is-armed .confirm-armed {
+  visibility: visible;
+}
+
+/* --- Footer ------------------------------------------------------------- */
+.studio-footer {
+  padding-top: 12px;
+  padding-bottom: 48px;
+}
+.footnote {
+  max-width: 84ch;
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 0;
+}
+.footnote a {
+  color: var(--accent-ink);
+}
+
+.gl-error {
+  padding: 48px 24px;
+}
+.gl-error h2 {
+  color: var(--strong);
+}

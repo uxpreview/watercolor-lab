@@ -1,0 +1,596 @@
+/**
+ * The simulator: owns the GL state textures, runs the pass sequence, and is
+ * the only thing the UI talks to. One instance per sheet.
+ *
+ * A substep is: blur wetness → pipe flux → water/velocity → advect pigment →
+ * transfer (deposit/lift, both sides from identical inputs) → capillary →
+ * dry-fold → clear folded cells. Brush splats land additively between frames.
+ */
+
+import {
+  bindTextures,
+  clearTarget,
+  copyTarget,
+  createFullscreenVAO,
+  createGL,
+  createPingPong,
+  createProgram,
+  createTarget,
+  type GL,
+  type PingPong,
+  type Program,
+  type Target,
+} from "./gl";
+import {
+  BLUR_WET_FRAG,
+  CAPILLARY_FRAG,
+  DRY_CLEAR_DEP_FRAG,
+  DRY_CLEAR_SUS_FRAG,
+  DRY_FOLD_FRAG,
+  FLUX_FRAG,
+  MOVE_PIGMENT_FRAG,
+  RENDER_FRAG,
+  SALT_FRAG,
+  SPLAT_FRAG,
+  SPLAT_VERT,
+  TRANSFER_DEP_FRAG,
+  TRANSFER_SUS_FRAG,
+  WATER_FRAG,
+} from "./shaders";
+import { generatePaper, PAPERS, type PaperKind } from "./paper";
+import { PAPER_REFLECTANCE } from "../paint/km";
+import type { Pigment } from "../paint/pigments";
+import type { Stamp } from "../paint/brush";
+
+/** Every tunable in the physics, in one bag, so the whole feel of the medium
+ * can be adjusted (or bisected, when a behavior goes wrong) without touching
+ * a shader. These defaults are the result of the visual tuning passes logged
+ * in docs/session-log.md. */
+export interface Params {
+  gravity: number;
+  damp: number;
+  slope: number;
+  tension: number;
+  saltPull: number;
+  evap: number;
+  evapEdge: number;
+  absorb: number;
+  capDiff: number;
+  capDry: number;
+  velScale: number;
+  advect: number;
+  edgeDrift: number;
+  settle: number;
+  granBias: number;
+  lift: number;
+  saltLift: number;
+  /** Deposition multiplier at the drying front — the dried rim, the tide
+   * line, the backrun's cauliflower edge. */
+  edgeSettle: number;
+  substeps: number;
+  zoomGrain: number;
+}
+
+export const DEFAULT_PARAMS: Params = {
+  gravity: 0.14,
+  damp: 0.982,
+  slope: 0.09,
+  tension: 0.02,
+  saltPull: 0.45,
+  evap: 0.00016,
+  evapEdge: 0.0016,
+  absorb: 0.00045,
+  capDiff: 0.05,
+  capDry: 0.00025,
+  velScale: 20,
+  advect: 1.0,
+  edgeDrift: 4.5,
+  settle: 0.0018,
+  granBias: 1.1,
+  lift: 0.005,
+  saltLift: 0.2,
+  edgeSettle: 14,
+  substeps: 3,
+  zoomGrain: 0.012,
+}
+
+const WATER_SCALE = 0.055;
+const PIGMENT_SCALE = 0.13;
+const MAX_STAMPS = 4096;
+const UNDO_DEPTH = 3;
+
+export class Simulation {
+  readonly simWidth: number;
+  readonly simHeight: number;
+  params: Params = { ...DEFAULT_PARAMS };
+
+  private ctx: GL;
+  private vao: WebGLVertexArrayObject;
+
+  private flow: PingPong;
+  private flux: PingPong;
+  private susK: PingPong;
+  private susS: PingPong;
+  private susP: PingPong;
+  private depK: PingPong;
+  private depS: PingPong;
+  private cap: PingPong;
+  private dried: PingPong;
+  private blurW: Target;
+  private paper: Target;
+
+  private progBlur: Program;
+  private progFlux: Program;
+  private progWater: Program;
+  private progMove: Program;
+  private progTransferSus: Program;
+  private progTransferDep: Program;
+  private progCapillary: Program;
+  private progDryFold: Program;
+  private progDryClearSus: Program;
+  private progDryClearDep: Program;
+  private progSplat: Program;
+  private progSalt: Program;
+  private progRender: Program;
+
+  private mrtFbo: WebGLFramebuffer;
+  private splatVao: WebGLVertexArrayObject;
+  private splatInstanceBuf: WebGLBuffer;
+  private splatData = new Float32Array(MAX_STAMPS * 8);
+
+  private undoRing: Target[][] = [];
+  private undoLive: number[] = [];
+  private undoCursor = 0;
+
+  private fastDrySteps = 0;
+  paperKind: PaperKind = "cold-press";
+
+  constructor(canvas: HTMLCanvasElement, simWidth: number, simHeight: number) {
+    this.simWidth = simWidth;
+    this.simHeight = simHeight;
+    this.ctx = createGL(canvas);
+    const { gl } = this.ctx;
+    this.vao = createFullscreenVAO(this.ctx);
+
+    this.flow = createPingPong(this.ctx, simWidth, simHeight);
+    this.flux = createPingPong(this.ctx, simWidth, simHeight);
+    this.susK = createPingPong(this.ctx, simWidth, simHeight);
+    this.susS = createPingPong(this.ctx, simWidth, simHeight);
+    this.susP = createPingPong(this.ctx, simWidth, simHeight);
+    this.depK = createPingPong(this.ctx, simWidth, simHeight);
+    this.depS = createPingPong(this.ctx, simWidth, simHeight);
+    this.cap = createPingPong(this.ctx, simWidth, simHeight);
+    this.dried = createPingPong(this.ctx, simWidth, simHeight);
+    this.blurW = createTarget(this.ctx, simWidth, simHeight);
+    this.paper = createTarget(this.ctx, simWidth, simHeight);
+
+    this.progBlur = createProgram(this.ctx, BLUR_WET_FRAG);
+    this.progFlux = createProgram(this.ctx, FLUX_FRAG);
+    this.progWater = createProgram(this.ctx, WATER_FRAG);
+    this.progMove = createProgram(this.ctx, MOVE_PIGMENT_FRAG);
+    this.progTransferSus = createProgram(this.ctx, TRANSFER_SUS_FRAG);
+    this.progTransferDep = createProgram(this.ctx, TRANSFER_DEP_FRAG);
+    this.progCapillary = createProgram(this.ctx, CAPILLARY_FRAG);
+    this.progDryFold = createProgram(this.ctx, DRY_FOLD_FRAG);
+    this.progDryClearSus = createProgram(this.ctx, DRY_CLEAR_SUS_FRAG);
+    this.progDryClearDep = createProgram(this.ctx, DRY_CLEAR_DEP_FRAG);
+    this.progSplat = createProgram(this.ctx, SPLAT_FRAG, SPLAT_VERT);
+    this.progSalt = createProgram(this.ctx, SALT_FRAG, SPLAT_VERT);
+    this.progRender = createProgram(this.ctx, RENDER_FRAG);
+
+    this.mrtFbo = gl.createFramebuffer()!;
+
+    // Instanced splat geometry: a unit quad, plus two vec4s per stamp.
+    this.splatVao = gl.createVertexArray()!;
+    gl.bindVertexArray(this.splatVao);
+    const quad = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.splatInstanceBuf = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.splatInstanceBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.splatData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 0);
+    gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 32, 16);
+    gl.vertexAttribDivisor(2, 1);
+    gl.bindVertexArray(null);
+
+    this.setPaper("cold-press", false);
+    this.resetState();
+  }
+
+  /** Every sheet is its own sheet: a new seed per instance unless one is
+   * pinned (the scripted scenes pin theirs so a figure reproduces). */
+  paperSeed = 7 + Math.floor(Math.random() * 1e6);
+
+  /** Uploads a fresh sheet. Regenerating the height field is the slow part
+   * (~60ms), so paper changes clear the painting with it. */
+  setPaper(kind: PaperKind, clear = true, seed = this.paperSeed): void {
+    const { gl } = this.ctx;
+    this.paperKind = kind;
+    this.paperSeed = seed;
+    const field = generatePaper(this.simWidth, this.simHeight, PAPERS[kind], seed);
+    const rgba = new Float32Array(this.simWidth * this.simHeight * 4);
+    for (let i = 0; i < this.simWidth * this.simHeight; i++) {
+      rgba[i * 4] = field.data[i * 2];
+      rgba[i * 4 + 1] = field.data[i * 2 + 1];
+    }
+    gl.bindTexture(gl.TEXTURE_2D, this.paper.texture);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.simWidth, this.simHeight, gl.RGBA, gl.FLOAT, rgba);
+    if (clear) this.resetState();
+  }
+
+  resetState(): void {
+    const [pr, pg, pb] = PAPER_REFLECTANCE;
+    for (const pair of [this.flow, this.flux, this.susK, this.susS, this.susP, this.depK, this.depS, this.cap]) {
+      clearTarget(this.ctx, pair.read);
+      clearTarget(this.ctx, pair.write);
+    }
+    clearTarget(this.ctx, this.dried.read, pr, pg, pb, 0);
+    clearTarget(this.ctx, this.dried.write, pr, pg, pb, 0);
+    this.undoLive = [];
+    this.fastDrySteps = 0;
+  }
+
+  // ---------------------------------------------------------------- painting
+
+  /** Blends a batch of stamps into the live water and suspension textures.
+   * All stamps in a call carry one pigment (the brush holds one mix). */
+  splat(stamps: Stamp[], pigment: Pigment | null): void {
+    if (stamps.length === 0) return;
+    const { gl } = this.ctx;
+    const count = Math.min(stamps.length, MAX_STAMPS);
+    for (let i = 0; i < count; i++) {
+      const s = stamps[i];
+      const base = i * 8;
+      this.splatData[base] = s.x;
+      this.splatData[base + 1] = this.simHeight - s.y; // pointer y is top-down
+      this.splatData[base + 2] = s.radius;
+      this.splatData[base + 3] = s.water * WATER_SCALE;
+      this.splatData[base + 4] = (pigment ? s.pigment : 0) * PIGMENT_SCALE;
+      this.splatData[base + 5] = s.dryness;
+      this.splatData[base + 6] = i;
+      this.splatData[base + 7] = 0;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.splatInstanceBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.splatData, 0, count * 8);
+
+    this.bindMRT([this.flow.read, this.susK.read, this.susS.read, this.susP.read]);
+    gl.viewport(0, 0, this.simWidth, this.simHeight);
+    gl.useProgram(this.progSplat.program);
+    gl.uniform2f(this.progSplat.uniforms.uSimSize, this.simWidth, this.simHeight);
+    const k = pigment ? pigment.k : [0, 0, 0];
+    const s3 = pigment ? pigment.s : [0, 0, 0];
+    gl.uniform3f(this.progSplat.uniforms.uPigK, k[0], k[1], k[2]);
+    gl.uniform3f(this.progSplat.uniforms.uPigS, s3[0], s3[1], s3[2]);
+    gl.uniform3f(
+      this.progSplat.uniforms.uPigProps,
+      pigment ? pigment.density : 0.4,
+      pigment ? pigment.granulation : 0,
+      pigment ? pigment.staining : 0.3
+    );
+    bindTextures(this.ctx, this.progSplat, [["uPaper", this.paper.texture]]);
+    gl.bindVertexArray(this.splatVao);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** Scatters salt grains around (x, y). Each grain is a point of osmotic
+   * pull and suppressed deposition in the capillary texture; the physics does
+   * the rest while the wash dries. */
+  addSalt(x: number, y: number, radius = 46, seed = Math.floor(Math.random() * 1e9)): void {
+    const { gl } = this.ctx;
+    let state = seed | 0;
+    const rand = () => {
+      state = (state + 0x6d2b79f5) | 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const grains = 18 + Math.floor(rand() * 12);
+    const count = Math.min(grains, MAX_STAMPS);
+    for (let i = 0; i < count; i++) {
+      const angle = rand() * Math.PI * 2;
+      const dist = Math.sqrt(rand()) * radius;
+      const base = i * 8;
+      this.splatData[base] = x + Math.cos(angle) * dist;
+      this.splatData[base + 1] = this.simHeight - (y + Math.sin(angle) * dist);
+      this.splatData[base + 2] = 2.6 + rand() * 4.2;
+      this.splatData[base + 3] = 0;
+      this.splatData[base + 4] = 0.35 + rand() * 0.5; // salt amount
+      this.splatData[base + 5] = 0;
+      this.splatData[base + 6] = i;
+      this.splatData[base + 7] = 0;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.splatInstanceBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.splatData, 0, count * 8);
+    this.bindMRT([this.cap.read]);
+    gl.viewport(0, 0, this.simWidth, this.simHeight);
+    gl.useProgram(this.progSalt.program);
+    gl.uniform2f(this.progSalt.uniforms.uSimSize, this.simWidth, this.simHeight);
+    gl.bindVertexArray(this.splatVao);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** The hairdryer: fast-forward evaporation over the next several frames,
+   * so the drying is watched rather than instantaneous — the edges creep in
+   * and the blooms freeze exactly as they would at 1×, just quicker. */
+  dryFast(): void {
+    this.fastDrySteps = 480;
+  }
+
+  // -------------------------------------------------------------- simulation
+
+  /** One frame's worth of physics. */
+  update(): void {
+    const steps = this.params.substeps + (this.fastDrySteps > 0 ? 13 : 0);
+    const evapMul = this.fastDrySteps > 0 ? 28 : 1;
+    for (let i = 0; i < steps; i++) this.substep(evapMul);
+    if (this.fastDrySteps > 0) this.fastDrySteps -= steps;
+  }
+
+  /** Deterministic fast-forward, for scripted demos and figures. */
+  stepMany(steps: number, evapMul = 1): void {
+    for (let i = 0; i < steps; i++) this.substep(evapMul);
+  }
+
+  private bindMRT(targets: Target[]): void {
+    const { gl } = this.ctx;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.mrtFbo);
+    const attachments: number[] = [];
+    for (let i = 0; i < targets.length; i++) {
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, targets[i].texture, 0);
+      attachments.push(gl.COLOR_ATTACHMENT0 + i);
+    }
+    // Detach any leftover attachment from a wider previous pass.
+    for (let i = targets.length; i < 4; i++) {
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, null, 0);
+    }
+    gl.drawBuffers(attachments);
+  }
+
+  private runPass(program: Program, outputs: Target[], textures: Array<[string, WebGLTexture]>, uniforms?: Record<string, number>): void {
+    const { gl } = this.ctx;
+    this.bindMRT(outputs);
+    gl.viewport(0, 0, this.simWidth, this.simHeight);
+    gl.useProgram(program.program);
+    gl.uniform2f(program.uniforms.uTexel, 1 / this.simWidth, 1 / this.simHeight);
+    bindTextures(this.ctx, program, textures);
+    if (uniforms) {
+      for (const [name, value] of Object.entries(uniforms)) {
+        const loc = program.uniforms[name];
+        if (loc) gl.uniform1f(loc, value);
+      }
+    }
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  private substep(evapMul: number): void {
+    const p = this.params;
+
+    this.runPass(this.progBlur, [this.blurW], [["uFlow", this.flow.read.texture]]);
+
+    this.runPass(
+      this.progFlux,
+      [this.flux.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uFlux", this.flux.read.texture],
+        ["uPaper", this.paper.texture],
+        ["uCap", this.cap.read.texture],
+      ],
+      { uGravity: p.gravity, uDamp: p.damp, uSlope: p.slope, uTension: p.tension, uSaltPull: p.saltPull }
+    );
+    this.flux.swap();
+
+    this.runPass(
+      this.progWater,
+      [this.flow.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uFlux", this.flux.read.texture],
+        ["uBlurW", this.blurW.texture],
+        ["uCap", this.cap.read.texture],
+      ],
+      { uEvap: p.evap, uEvapEdge: p.evapEdge, uEvapMul: evapMul, uAbsorb: p.absorb, uVelScale: p.velScale }
+    );
+    this.flow.swap();
+
+    this.runPass(
+      this.progMove,
+      [this.susK.write, this.susS.write, this.susP.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uBlurW", this.blurW.texture],
+        ["uSusK", this.susK.read.texture],
+        ["uSusS", this.susS.read.texture],
+        ["uSusP", this.susP.read.texture],
+      ],
+      { uAdvect: p.advect, uEdgeDrift: p.edgeDrift }
+    );
+    this.susK.swap();
+    this.susS.swap();
+    this.susP.swap();
+
+    const transferTextures: Array<[string, WebGLTexture]> = [
+      ["uFlow", this.flow.read.texture],
+      ["uPaper", this.paper.texture],
+      ["uCap", this.cap.read.texture],
+      ["uBlurW", this.blurW.texture],
+      ["uSusK", this.susK.read.texture],
+      ["uSusS", this.susS.read.texture],
+      ["uSusP", this.susP.read.texture],
+      ["uDepK", this.depK.read.texture],
+      ["uDepS", this.depS.read.texture],
+    ];
+    const transferUniforms = {
+      uSettle: p.settle,
+      uGranBias: p.granBias,
+      uLift: p.lift,
+      uSaltLift: p.saltLift,
+      uEdgeSettle: p.edgeSettle,
+    };
+    // Both passes read the same pre-swap textures, so the two sides of the
+    // exchange agree; only then do the pairs swap.
+    this.runPass(this.progTransferDep, [this.depK.write, this.depS.write], transferTextures, transferUniforms);
+    this.runPass(this.progTransferSus, [this.susK.write, this.susS.write, this.susP.write], transferTextures, transferUniforms);
+    this.depK.swap();
+    this.depS.swap();
+    this.susK.swap();
+    this.susS.swap();
+    this.susP.swap();
+
+    this.runPass(
+      this.progCapillary,
+      [this.cap.write],
+      [
+        ["uCap", this.cap.read.texture],
+        ["uFlow", this.flow.read.texture],
+      ],
+      { uCapDiff: p.capDiff, uCapDry: p.capDry, uEvapMul: evapMul, uAbsorb: p.absorb }
+    );
+    this.cap.swap();
+
+    this.runPass(
+      this.progDryFold,
+      [this.dried.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uSusK", this.susK.read.texture],
+        ["uSusS", this.susS.read.texture],
+        ["uDepK", this.depK.read.texture],
+        ["uDepS", this.depS.read.texture],
+        ["uDried", this.dried.read.texture],
+      ]
+    );
+    this.dried.swap();
+
+    this.runPass(
+      this.progDryClearSus,
+      [this.susK.write, this.susS.write, this.susP.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uSusK", this.susK.read.texture],
+        ["uSusS", this.susS.read.texture],
+        ["uSusP", this.susP.read.texture],
+        ["uDepK", this.depK.read.texture],
+      ]
+    );
+    this.runPass(
+      this.progDryClearDep,
+      [this.depK.write, this.depS.write],
+      [
+        ["uFlow", this.flow.read.texture],
+        ["uSusK", this.susK.read.texture],
+        ["uDepK", this.depK.read.texture],
+        ["uDepS", this.depS.read.texture],
+      ]
+    );
+    this.susK.swap();
+    this.susS.swap();
+    this.susP.swap();
+    this.depK.swap();
+    this.depS.swap();
+  }
+
+  // ----------------------------------------------------------------- render
+
+  render(backlight: number): void {
+    const { gl, canvas } = this.ctx;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.useProgram(this.progRender.program);
+    gl.uniform2f(this.progRender.uniforms.uTexel, 1 / this.simWidth, 1 / this.simHeight);
+    gl.uniform1f(this.progRender.uniforms.uBacklight, backlight);
+    gl.uniform1f(this.progRender.uniforms.uZoomGrain, this.params.zoomGrain);
+    bindTextures(this.ctx, this.progRender, [
+      ["uFlow", this.flow.read.texture],
+      ["uSusK", this.susK.read.texture],
+      ["uSusS", this.susS.read.texture],
+      ["uDepK", this.depK.read.texture],
+      ["uDepS", this.depS.read.texture],
+      ["uDried", this.dried.read.texture],
+      ["uPaper", this.paper.texture],
+      ["uSusP", this.susP.read.texture],
+    ]);
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+  }
+
+  // ------------------------------------------------------------------- undo
+
+  private stateTargets(): Target[] {
+    return [
+      this.flow.read,
+      this.susK.read,
+      this.susS.read,
+      this.susP.read,
+      this.depK.read,
+      this.depS.read,
+      this.cap.read,
+      this.dried.read,
+    ];
+  }
+
+  /** Called at the start of every stroke (and before salt/clear). Keeps the
+   * last few states as GPU-side texture copies — VRAM is the budget, so the
+   * ring is shallow, and allocation failure just means less undo. */
+  snapshot(): void {
+    try {
+      if (this.undoRing.length < UNDO_DEPTH) {
+        while (this.undoRing.length < UNDO_DEPTH) {
+          this.undoRing.push(this.stateTargets().map(() => createTarget(this.ctx, this.simWidth, this.simHeight)));
+        }
+      }
+    } catch {
+      if (this.undoRing.length === 0) return;
+    }
+    const slot = this.undoCursor % this.undoRing.length;
+    const targets = this.stateTargets();
+    for (let i = 0; i < targets.length; i++) copyTarget(this.ctx, targets[i], this.undoRing[slot][i]);
+    this.undoLive.push(slot);
+    if (this.undoLive.length > this.undoRing.length) this.undoLive.shift();
+    this.undoCursor++;
+  }
+
+  undo(): boolean {
+    const slot = this.undoLive.pop();
+    if (slot === undefined) return false;
+    const targets = this.stateTargets();
+    for (let i = 0; i < targets.length; i++) copyTarget(this.ctx, this.undoRing[slot][i], targets[i]);
+    clearTarget(this.ctx, this.flux.read);
+    clearTarget(this.ctx, this.flux.write);
+    this.fastDrySteps = 0;
+    return true;
+  }
+
+  clearSheet(): void {
+    this.snapshot();
+    const [pr, pg, pb] = PAPER_REFLECTANCE;
+    for (const pair of [this.flow, this.flux, this.susK, this.susS, this.susP, this.depK, this.depS, this.cap]) {
+      clearTarget(this.ctx, pair.read);
+      clearTarget(this.ctx, pair.write);
+    }
+    clearTarget(this.ctx, this.dried.read, pr, pg, pb, 0);
+    clearTarget(this.ctx, this.dried.write, pr, pg, pb, 0);
+    this.fastDrySteps = 0;
+  }
+}
