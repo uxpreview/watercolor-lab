@@ -219,3 +219,30 @@ layout — copy left, the experiment's own picture in a hairline frame right —
 in Figtree, which the old card lacked (the container had no font). `.btn-ghost`
 was referenced but never defined here; the class is gone and the buttons wear
 the shared outlined recipe they always rendered with.
+
+## X-ray
+
+Feature pass 2, item one. The X-ray box shows the state textures themselves,
+one field at a time: Water (flow.b, standing depth), Wet (flow.a), Suspended
+(susK.a), Settled (depK.a), Paper (cap.r, with salt from cap.g in vermillion)
+and Dried (dried.a). One shader, one number per pixel, tone-mapped through
+1 − exp(−v/scale) so a saturating ramp never clips, painted paper cream →
+mid teal → the site's ink. Nothing stylized and no relief: the sheet is a
+readout while a field is up (the desk shadow goes, so cream reads as zero).
+
+The scales are constants, not fits: autoscaling would make the same wash
+change shade from one frame to the next, which is the opposite of an
+instrument. They were set once against a heavy mop wash on cold press, read
+back over the whole sheet at 0, 1, 3 and 8 s (`readFloat`), so a typical wash
+sits mid-ramp — water 0.12, wet 0.6, suspended 0.15, settled 0.06, paper 0.03,
+dried 1.0. Two things the numbers said that the eye had not: paper
+saturation is a small, fast field (peaks near 0.04 and collapses within a
+second of the surface drying — the Paper view is mostly empty unless the sheet
+is wet, which is true), and settled deposit is an order of magnitude thinner
+than suspension until the wash is nearly dry.
+
+The legend under the pills prints the field's one-line meaning, the ramp as
+a CSS gradient (a UI colormap, not a pigment, so this is not a hex-swatch
+violation), and the value past which the ramp is effectively full ink (3×
+scale, 95%). Export PNG while a field is up exports the field — deliberate;
+it is what is on the sheet.

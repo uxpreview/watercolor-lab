@@ -608,6 +608,40 @@ body.is-backlit .sheet {
   visibility: visible;
 }
 
+/* --- X-ray -------------------------------------------------------------- */
+.xray-what {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body-2);
+  text-wrap: pretty;
+}
+/* The ramp the shader paints with: paper cream to the site's ink. A UI
+   colormap, not a pigment, so a CSS gradient is the honest drawing of it. */
+.xray-ramp {
+  margin-top: 10px;
+}
+.xray-ramp-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #faf3e4, #4b8a93, #003f48);
+  border: 1px solid var(--line);
+}
+.xray-ramp-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+/* While a field is up, the sheet is a readout, not a painting: no desk
+   shadow, so the ramp's cream reads as the sheet's zero. */
+body.is-xray .sheet {
+  box-shadow: 0 0 0 1px var(--line);
+}
+
 /* --- Bench notes + footer --------------------------------------------- */
 .app-footer {
   padding-top: 8px;

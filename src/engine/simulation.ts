@@ -31,6 +31,7 @@ import {
   LIFT_FRAG,
   MOVE_PIGMENT_FRAG,
   RENDER_FRAG,
+  XRAY_FRAG,
   SALT_FRAG,
   SPLAT_FRAG,
   SPLAT_VERT,
@@ -103,6 +104,22 @@ const PIGMENT_SCALE = 0.13;
 const MAX_STAMPS = 4096;
 const UNDO_DEPTH = 3;
 
+/** The X-ray views: which state texture, and the value at which its ramp
+ * reaches 63% (1 - 1/e) of full ink. Scales were set once against measured
+ * fields of a heavy mop wash on cold press (readFloat over the whole sheet at
+ * 0, 1, 3 and 8 s) so a typical wash sits mid-ramp; they are constants, never
+ * fitted to the frame being drawn. */
+export type XrayField = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export const XRAY_FIELDS: Record<XrayField, { id: string; name: string; what: string; scale: number; unit: string }> = {
+  0: { id: "paint", name: "Paint", what: "The painting as it looks.", scale: 1, unit: "" },
+  1: { id: "water", name: "Water", what: "Standing water on the sheet — the film that flows and carries pigment.", scale: 0.12, unit: "depth" },
+  2: { id: "wet", name: "Wet", what: "How wet the surface is, 0 to 1 — the wash boundary is where it drops.", scale: 0.6, unit: "wetness" },
+  3: { id: "suspended", name: "Suspended", what: "Pigment riding in the water, not yet settled.", scale: 0.15, unit: "concentration" },
+  4: { id: "settled", name: "Settled", what: "Pigment settled on the sheet but not yet dried — what the lift tool can reach.", scale: 0.06, unit: "thickness" },
+  5: { id: "paper", name: "Paper", what: "Water inside the paper's fibres, where backruns travel. Salt grains in vermillion.", scale: 0.03, unit: "saturation" },
+  6: { id: "dried", name: "Dried", what: "Everything cured into the sheet, as optical depth. Permanent.", scale: 1.0, unit: "depth" },
+};
+
 export class Simulation {
   readonly simWidth: number;
   readonly simHeight: number;
@@ -137,6 +154,7 @@ export class Simulation {
   private progSalt: Program;
   private progLift: Program;
   private progRender: Program;
+  private progXray: Program;
 
   private mrtFbo: WebGLFramebuffer;
   private splatVao: WebGLVertexArrayObject;
@@ -185,6 +203,7 @@ export class Simulation {
     this.progSalt = createProgram(this.ctx, SALT_FRAG, SPLAT_VERT);
     this.progLift = createProgram(this.ctx, LIFT_FRAG, SPLAT_VERT);
     this.progRender = createProgram(this.ctx, RENDER_FRAG);
+    this.progXray = createProgram(this.ctx, XRAY_FRAG);
 
     this.mrtFbo = gl.createFramebuffer()!;
 
@@ -557,10 +576,27 @@ export class Simulation {
 
   // ----------------------------------------------------------------- render
 
-  render(backlight: number): void {
+  render(backlight: number, xray: XrayField = 0): void {
     const { gl, canvas } = this.ctx;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
+    if (xray !== 0) {
+      gl.useProgram(this.progXray.program);
+      gl.uniform2f(this.progXray.uniforms.uTexel, 1 / this.simWidth, 1 / this.simHeight);
+      gl.uniform1i(this.progXray.uniforms.uField, xray);
+      gl.uniform1f(this.progXray.uniforms.uScale, XRAY_FIELDS[xray].scale);
+      bindTextures(this.ctx, this.progXray, [
+        ["uFlow", this.flow.read.texture],
+        ["uSusK", this.susK.read.texture],
+        ["uDepK", this.depK.read.texture],
+        ["uCap", this.cap.read.texture],
+        ["uDried", this.dried.read.texture],
+      ]);
+      gl.bindVertexArray(this.vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.bindVertexArray(null);
+      return;
+    }
     gl.useProgram(this.progRender.program);
     gl.uniform2f(this.progRender.uniforms.uTexel, 1 / this.simWidth, 1 / this.simHeight);
     gl.uniform1f(this.progRender.uniforms.uBacklight, backlight);

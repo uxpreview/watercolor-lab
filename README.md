@@ -100,6 +100,12 @@ Because the physics is real, the technique vocabulary transfers:
   paint is cured and stays.
 - **Backlight** — a lightbox view that shows what the light survives, through
   every layer and the sheet.
+- **X-ray** — the simulation's own state, one field at a time: standing
+  water, wetness, pigment in suspension, pigment settled, water inside the
+  paper (salt in vermillion), and what has dried. Every pixel is one number
+  from one texture on a fixed scale — an inspection, not an effect. Watch a
+  wash in Water and Suspended while it dries and you can see the transport
+  that makes the edge darken.
 - **Alive modes** — Forever Wet turns evaporation off so the sheet stays
   workable; Rain drops clean water on the painting and lets the physics
   work it over.
