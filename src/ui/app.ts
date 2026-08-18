@@ -8,7 +8,7 @@ import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS, type StrokeState, 
 import { DEFAULT_PIGMENT_ID, handlingNote, PIGMENT_BY_ID, type Pigment } from "../paint/pigments";
 import { mixWell, wellName, type WellEntry } from "../paint/mix";
 import { PAPERS, type PaperKind } from "../engine/paper";
-import { Simulation } from "../engine/simulation";
+import { Simulation, XRAY_FIELDS, type XrayField } from "../engine/simulation";
 import { loadSheet, saveSheet } from "../data/store";
 import { fitDried } from "../data/resample";
 import { confirmButton, el } from "./dom";
@@ -36,6 +36,8 @@ export interface AppApi {
   setLoad(v: number): void;
   setPaper(kind: PaperKind): void;
   setBacklight(on: boolean): void;
+  /** The X-ray view: 0 is the painting, 1–6 one state field each. */
+  setXray(field: XrayField): void;
   strokePath(points: Array<{ x: number; y: number }>, stepsPerSegment?: number): void;
   salt(x: number, y: number): void;
   dry(): void;
@@ -103,6 +105,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   let water = 0.55;
   let load = 0.65;
   let backlight = false;
+  let xray: XrayField = 0;
   let rain = false;
   let stroke: StrokeState | null = null;
   let strokeMoved = false;
@@ -374,6 +377,40 @@ export function mountStudio(host: HTMLElement): AppApi {
     "Rain"
   );
 
+  // ---- x-ray ---------------------------------------------------------------
+  // The state textures themselves, one field at a time. An inspection mode,
+  // not an effect: every pixel is one number from the simulation, on a fixed
+  // scale, so a wash reads the same shade from one moment to the next.
+  const xrayRow = el("div", { class: "paper-row", role: "radiogroup", "aria-label": "X-ray view" });
+  const xrayButtons = new Map<XrayField, HTMLButtonElement>();
+  const xrayWhat = el("p", { class: "xray-what" });
+  const xrayRamp = el(
+    "div",
+    { class: "xray-ramp", "aria-hidden": "true" },
+    el("span", { class: "xray-ramp-bar" }),
+    el("span", { class: "xray-ramp-ends" }, el("span", {}, "0"), el("span", { class: "xray-ramp-unit" }))
+  );
+  const setXray = (field: XrayField) => {
+    xray = field;
+    const spec = XRAY_FIELDS[field];
+    for (const [key, btn] of xrayButtons) btn.setAttribute("aria-checked", String(key === field));
+    xrayWhat.textContent = spec.what;
+    xrayRamp.hidden = field === 0;
+    (xrayRamp.querySelector(".xray-ramp-unit") as HTMLElement).textContent = `${spec.unit} · full ink past ${Number((spec.scale * 3).toPrecision(2))}`;
+    document.body.classList.toggle("is-xray", field !== 0);
+  };
+  for (const key of [0, 1, 2, 3, 4, 5, 6] as XrayField[]) {
+    const spec = XRAY_FIELDS[key];
+    const btn = el(
+      "button",
+      { class: "btn btn-small", type: "button", role: "radio", "aria-checked": "false", onclick: () => setXray(key) },
+      spec.name
+    );
+    xrayButtons.set(key, btn);
+    xrayRow.append(btn);
+  }
+  setXray(0);
+
   // ---- actions -----------------------------------------------------------
   const backlightBtn = el(
     "button",
@@ -389,7 +426,7 @@ export function mountStudio(host: HTMLElement): AppApi {
 
   const exportPNG = () => {
     sim.update();
-    sim.render(backlight ? 1 : 0);
+    sim.render(backlight ? 1 : 0, xray);
     canvas.toBlob((blob) => {
       if (!blob) return;
       const a = el("a", { href: URL.createObjectURL(blob), download: "watercolor.png" });
@@ -472,7 +509,8 @@ export function mountStudio(host: HTMLElement): AppApi {
     ),
     el("section", { class: "box" }, el("h2", { class: "box-title" }, "Paper"), paperRow),
     el("section", { class: "box" }, el("h2", { class: "box-title" }, "Alive"), el("div", { class: "paper-row" }, foreverWetBtn, rainBtn)),
-    el("section", { class: "box" }, el("h2", { class: "box-title" }, "Sheet"), actions)
+    el("section", { class: "box" }, el("h2", { class: "box-title" }, "Sheet"), actions),
+    el("section", { class: "box" }, el("h2", { class: "box-title" }, "X-ray"), xrayRow, xrayWhat, xrayRamp)
   );
 
   const easel = el("div", { class: "easel" }, canvas, hint);
@@ -498,7 +536,7 @@ export function mountStudio(host: HTMLElement): AppApi {
       sim.splat(drops, null);
     }
     sim.update();
-    sim.render(backlight ? 1 : 0);
+    sim.render(backlight ? 1 : 0, xray);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -520,6 +558,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     setLoad: (v) => loadCtl.set(v),
     setPaper: selectPaper,
     setBacklight,
+    setXray,
     strokePath(points, stepsPerSegment = 2) {
       if (points.length === 0 || tool === "salt") return;
       sim.snapshot();

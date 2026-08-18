@@ -78,6 +78,12 @@ quiet; the quinacridones travel.
 ![Heavy French ultramarine on rough paper, dried: pigment settled into the tooth.](docs/figures/granulation.png)
 ![A dried ultramarine band crossed by burnt sienna: the overlap multiplies like pigment, not like ink.](docs/figures/glaze.png)
 
+Hold any pan (or right-click it) for its card: the declared numbers as
+meters — opacity, tinting strength, granulation, staining, settling — a
+masstone-to-tint ramp painted by the same Kubelka-Munk maths as the pans, and
+one sentence on handling composed from those same numbers, so the card can
+never promise a behaviour the wash does not have.
+
 ## Techniques that work
 
 Because the physics is real, the technique vocabulary transfers:
@@ -100,6 +106,12 @@ Because the physics is real, the technique vocabulary transfers:
   paint is cured and stays.
 - **Backlight** — a lightbox view that shows what the light survives, through
   every layer and the sheet.
+- **X-ray** — the simulation's own state, one field at a time: standing
+  water, wetness, pigment in suspension, pigment settled, water inside the
+  paper (salt in vermillion), and what has dried. Every pixel is one number
+  from one texture on a fixed scale — an inspection, not an effect. Watch a
+  wash in Water and Suspended while it dries and you can see the transport
+  that makes the edge darken.
 - **Alive modes** — Forever Wet turns evaporation off so the sheet stays
   workable; Rain drops clean water on the painting and lets the physics
   work it over.

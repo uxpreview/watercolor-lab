@@ -133,3 +133,85 @@ export function handlingNote(p: Pigment): string {
   if (p.staining >= 0.65) notes.push("staining");
   return notes.join(" · ");
 }
+
+/** The declared numbers, in the order a tube label lists them, each with the
+ * word a painter would use for it. `value` is the raw number; `level` is
+ * where it sits on its own scale, 0..1, for a meter. Tinting strength runs
+ * roughly 0.8 (terre verte) to 2 (the phthalos), scattering 0.05 to 2.5. */
+export interface PigmentFact {
+  key: "transparency" | "strength" | "granulation" | "staining" | "density";
+  label: string;
+  value: number;
+  level: number;
+  word: string;
+}
+
+export function pigmentFacts(p: Pigment): PigmentFact[] {
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+  return [
+    {
+      key: "transparency",
+      label: "Opacity",
+      value: p.scattering,
+      level: clamp01(p.scattering / 2.5),
+      word: p.scattering >= 1.2 ? "opaque" : p.scattering >= 0.4 ? "semi-transparent" : "transparent",
+    },
+    {
+      key: "strength",
+      label: "Tinting strength",
+      value: p.strength,
+      level: clamp01((p.strength - 0.8) / 1.2),
+      word: p.strength >= 1.7 ? "very strong" : p.strength >= 1.3 ? "strong" : p.strength >= 1.0 ? "moderate" : "weak",
+    },
+    {
+      key: "granulation",
+      label: "Granulation",
+      value: p.granulation,
+      level: clamp01(p.granulation),
+      word: p.granulation >= 0.7 ? "heavy" : p.granulation >= 0.5 ? "granulating" : p.granulation >= 0.2 ? "slight" : "smooth",
+    },
+    {
+      key: "staining",
+      label: "Staining",
+      value: p.staining,
+      level: clamp01(p.staining),
+      word: p.staining >= 0.65 ? "staining" : p.staining >= 0.35 ? "moderate" : "lifts clean",
+    },
+    {
+      key: "density",
+      label: "Settling",
+      value: p.density,
+      level: clamp01(p.density),
+      word: p.density >= 0.7 ? "sinks fast" : p.density >= 0.4 ? "settles" : "stays afloat",
+    },
+  ];
+}
+
+/** One sentence on how the pigment handles, composed from the same numbers
+ * that drive the physics — so the card can never promise a behaviour the
+ * wash does not have. Three clauses, always in the same order: how it
+ * covers, how it moves, how it lifts. */
+export function handlingSentence(p: Pigment): string {
+  const cover =
+    p.scattering >= 1.2
+      ? "Opaque — it hides the paper and lightens what it glazes over"
+      : p.scattering >= 0.4
+        ? "Semi-transparent — a wash lets the sheet through, a heavy load does not"
+        : "Transparent — every glaze shows what is under it";
+  const move =
+    p.granulation >= 0.5 && p.density >= 0.7
+      ? "settles fast and hard into the tooth, so a wash calms and granulates"
+      : p.granulation >= 0.5
+        ? "granulates into the tooth as it dries"
+        : p.density <= 0.3
+          ? "stays in the water and keeps travelling, so blooms and backruns run far"
+          : "flows evenly and dries smooth";
+  const lift =
+    p.staining >= 0.65
+      ? "and it stains — once settled it will not lift"
+      : p.staining >= 0.35
+        ? "and it lifts partly from damp paper"
+        : "and it lifts clean from damp paper";
+  const strength = p.strength >= 1.7 ? " A little goes a long way." : p.strength < 1.0 ? " It is weak in the well; load the brush." : "";
+  return `${cover}; ${move}, ${lift}.${strength}`;
+}

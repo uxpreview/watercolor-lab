@@ -663,3 +663,53 @@ void main() {
   outColor = vec4(srgb, 1.0);
 }
 `;
+
+/** X-ray: the state textures themselves, one field at a time, on the bare
+ * sheet. Nothing is stylized: each pixel is one number from one texture,
+ * tone-mapped through 1 - exp(-v / scale) so a saturating ramp never clips
+ * and small values stay legible, then painted from paper cream toward the
+ * site's deep teal. The scale per field is fixed, never fitted to the frame,
+ * so the same wash reads the same shade from one moment to the next.
+ *   1 water   flow.b   standing water depth
+ *   2 wet     flow.a   surface wetness (0..1)
+ *   3 sus     susK.a   pigment concentration in suspension
+ *   4 dep     depK.a   deposit thickness (settled, not yet dried)
+ *   5 paper   cap.r    water inside the paper; salt grains (cap.g) in vermillion
+ *   6 dried   dried.a  optical depth of everything cured into the sheet */
+export const XRAY_FRAG = `${HEADER}
+uniform sampler2D uFlow;
+uniform sampler2D uSusK;
+uniform sampler2D uDepK;
+uniform sampler2D uCap;
+uniform sampler2D uDried;
+uniform int uField;
+uniform float uScale;
+out vec4 outColor;
+
+const vec3 PAPER = vec3(0.957, 0.898, 0.776); // #faf3e4 in linear light
+const vec3 MID   = vec3(0.071, 0.254, 0.291); // #4b8a93 — keeps the ramp teal through its middle
+const vec3 INK   = vec3(0.0, 0.050, 0.065);   // #003f48 in linear light
+const vec3 SALT  = vec3(0.791, 0.045, 0.0);   // #e73d00 in linear light
+
+vec3 ramp(float t) {
+  return t < 0.5 ? mix(PAPER, MID, t * 2.0) : mix(MID, INK, (t - 0.5) * 2.0);
+}
+
+void main() {
+  float v = 0.0;
+  if (uField == 1) v = texture(uFlow, vUV).b;
+  else if (uField == 2) v = texture(uFlow, vUV).a;
+  else if (uField == 3) v = texture(uSusK, vUV).a;
+  else if (uField == 4) v = texture(uDepK, vUV).a;
+  else if (uField == 5) v = texture(uCap, vUV).r;
+  else if (uField == 6) v = texture(uDried, vUV).a;
+  float t = 1.0 - exp(-max(v, 0.0) / uScale);
+  vec3 color = ramp(t);
+  if (uField == 5) {
+    float salt = clamp(texture(uCap, vUV).g * 0.6, 0.0, 1.0);
+    color = mix(color, SALT, salt);
+  }
+  vec3 srgb = mix(color * 12.92, 1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, color));
+  outColor = vec4(srgb, 1.0);
+}
+`;
