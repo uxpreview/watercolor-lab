@@ -78,6 +78,12 @@ quiet; the quinacridones travel.
 ![Heavy French ultramarine on rough paper, dried: pigment settled into the tooth.](docs/figures/granulation.png)
 ![A dried ultramarine band crossed by burnt sienna: the overlap multiplies like pigment, not like ink.](docs/figures/glaze.png)
 
+Hold any pan (or right-click it) for its card: the declared numbers as
+meters — opacity, tinting strength, granulation, staining, settling — a
+masstone-to-tint ramp painted by the same Kubelka-Munk maths as the pans, and
+one sentence on handling composed from those same numbers, so the card can
+never promise a behaviour the wash does not have.
+
 ## Techniques that work
 
 Because the physics is real, the technique vocabulary transfers:

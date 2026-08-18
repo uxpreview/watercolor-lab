@@ -246,3 +246,19 @@ a CSS gradient (a UI colormap, not a pigment, so this is not a hex-swatch
 violation), and the value past which the ramp is effectively full ink (3×
 scale, 95%). Export PNG while a field is up exports the field — deliberate;
 it is what is on the sheet.
+## Pigment cards
+
+Feature pass 2, item two. Press-and-hold a pan (420 ms, under the platform's
+own long-press so the context menu never wins on a phone) or right-click it,
+and a card floats over the palette: name and Colour Index code, a
+masstone-to-tint ramp painted by the chip's own KM maths laid out as a strip,
+five meters for the declared numbers (opacity from scattering, tinting
+strength, granulation, staining, settling from density) each with the word
+a painter uses for that level and the raw value, and one sentence on
+handling. The sentence is composed from the numbers by `handlingSentence`
+(cover; movement; lifting; a strength clause when it matters), and the tests
+assert it cannot contradict them — a staining pigment's card says "stains",
+a granulating one says "granulat…", an opaque one opens with "Opaque". A
+held press swallows the click that follows it, so opening a card never
+changes the brush. Escape, the close button, a tap anywhere else, or
+choosing another pan closes it; focus returns to the pan.

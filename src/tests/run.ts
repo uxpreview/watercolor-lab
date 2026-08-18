@@ -7,7 +7,7 @@
  */
 
 import { composite, hexToLinear, kmFromMasstone, layerRT, linearToSrgbByte, masstone, PAPER_REFLECTANCE, type Vec3 } from "../paint/km";
-import { handlingNote, PIGMENTS } from "../paint/pigments";
+import { handlingNote, handlingSentence, pigmentFacts, PIGMENTS } from "../paint/pigments";
 import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS } from "../paint/brush";
 import { mixWell, wellName } from "../paint/mix";
 import { generatePaper, PAPERS } from "../engine/paper";
@@ -299,6 +299,29 @@ section("paper: the sheet is plausible");
   // Determinism: same seed, same sheet.
   const again = generatePaper(160, 120, PAPERS.rough, 11);
   ok(rough.data.every((v, i) => v === again.data[i]), "paper is reproducible from its seed");
+}
+
+// --- Pigment cards ---------------------------------------------------------
+
+section("pigments: the card says what the numbers say");
+{
+  for (const p of PIGMENTS) {
+    const facts = pigmentFacts(p);
+    ok(facts.length === 5 && facts.every((f) => f.level >= 0 && f.level <= 1), `${p.id}: five facts, meters in range`);
+    ok(facts[0].word === handlingNote(p).split(" · ")[0], `${p.id}: card opacity word matches the palette note`);
+    const sentence = handlingSentence(p);
+    ok(sentence.length > 40 && sentence.endsWith("."), `${p.id}: a real sentence`);
+    // The sentence may not contradict the numbers it was built from.
+    if (p.staining >= 0.65) ok(sentence.includes("stains"), `${p.id}: staining pigment says so`);
+    else ok(sentence.includes("lifts"), `${p.id}: non-staining pigment says it lifts`);
+    if (p.scattering >= 1.2) ok(sentence.startsWith("Opaque"), `${p.id}: opaque pigment says so`);
+    if (p.granulation >= 0.5) ok(sentence.includes("granulat"), `${p.id}: granulating pigment says so`);
+  }
+  // Two known pigments read the way their tubes do.
+  const ultra = PIGMENTS.find((p) => p.id === "french-ultramarine")!;
+  ok(handlingSentence(ultra).includes("granulat") && !handlingSentence(ultra).includes("stains"), "ultramarine granulates and does not stain");
+  const phthalo = PIGMENTS.find((p) => p.id === "phthalo-blue")!;
+  ok(handlingSentence(phthalo).startsWith("Transparent") && handlingSentence(phthalo).includes("stains"), "phthalo is a transparent stainer");
 }
 
 // --- Saved sheets across devices ------------------------------------------

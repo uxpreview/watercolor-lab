@@ -387,6 +387,8 @@ body.is-backlit .sheet {
   gap: 7px;
 }
 .chip {
+  -webkit-touch-callout: none;
+  user-select: none;
   padding: 0;
   border: 1.5px solid var(--edge);
   border-radius: 7px;
@@ -409,6 +411,160 @@ body.is-backlit .sheet {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* The pigment detail card: floats over the palette inside the Pigments box.
+   Same card recipe as everything else (surface, hairline, 12px radius) with
+   the one lift the site allows a thing that is temporarily on top. */
+.palette {
+  position: relative;
+}
+.pigment-card {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: -8px;
+  z-index: 3;
+  background: var(--bg);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-card);
+  padding: 14px 16px 12px;
+  box-shadow: 0 10px 34px rgba(24, 37, 40, 0.14);
+  animation: card-in var(--dur-micro) var(--ease-quint) both;
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pigment-card {
+    animation: none;
+  }
+}
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: var(--strong);
+  margin: 0;
+}
+.card-code {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.card-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--edge);
+  background: transparent;
+  color: var(--body-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  margin: -4px -6px 0 0;
+}
+.card-close:hover {
+  border-color: var(--strong);
+  color: var(--strong);
+}
+.card-ramp {
+  margin-top: 12px;
+}
+.card-ramp-canvas {
+  display: block;
+  width: 100%;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+.card-ramp-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.card-facts {
+  margin: 12px 0 0;
+  display: grid;
+  gap: 6px;
+}
+.card-fact {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.card-fact dt {
+  font-size: 12.5px;
+  color: var(--body-2);
+}
+.card-fact dd {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.card-meter {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tint);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.card-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.card-word {
+  color: var(--strong);
+  white-space: nowrap;
+}
+.card-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 3ch;
+  text-align: right;
+}
+.card-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+  text-wrap: pretty;
+}
+.palette-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.card-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 
 /* The mixing well: current brush charge, rendered by the same KM maths as

@@ -82,13 +82,13 @@ In priority order:
    Fonts because the file-push deploy couldn't carry binaries — the git
    deploy needs no such workaround).
 
-2. **Feature pass 2** (X-ray approved and built; the rest still to confirm
-   with Ryan one at a time). Candidates, with the intended angle:
+2. **Feature pass 2** (X-ray and pigment cards approved and built; the rest
+   still to confirm with Ryan one at a time). Candidates, with the intended
+   angle:
    - ~~**X-ray view**~~ — done (PR #5): `XRAY_FRAG`, `Simulation.render(backlight, xray)`,
      the X-ray box in the rail, `__wash.setXray(0–6)` for scripts.
-   - **Pigment detail cards**: tap-and-hold a pan → the pigment's declared
-     numbers, masstone/tint ramp, and a one-line handling note. All data
-     exists in `pigments.ts`.
+   - ~~**Pigment detail cards**~~ — done (PR #6): hold or right-click a pan;
+     `pigmentFacts` / `handlingSentence` in `pigments.ts`, card in `palette.ts`.
    - **Alcohol technique**: the inverse of salt — a droplet that *pushes*
      pigment outward (surfactant ring). Same splat-into-cap-channel pattern
      as salt; needs a free channel or packing.
