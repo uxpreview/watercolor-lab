@@ -1,6 +1,6 @@
 import "./tokens.css";
 import "./styles.css";
-import { appBar } from "./ui/chrome";
+import { appBar, LAB_URL } from "./ui/chrome";
 import { mountStudio, type AppApi } from "./ui/app";
 import { el } from "./ui/dom";
 
@@ -13,24 +13,117 @@ declare global {
   }
 }
 
+// --- The experiment page shell -------------------------------------------
+// This tool is EXP-041 in the Lab on ryankm.com and it is hosted here rather
+// than there, so the page has to do the work the site's /lab/<slug> route
+// normally does: the trail back up, the record voice (number, kind, state,
+// then the stack), the claim in display type, and the lede. Same order, same
+// tokens, same measure as the other off-site experiments (see Attention Lab).
+
+function experimentHead(): HTMLElement {
+  const meta = el(
+    "div",
+    { class: "exp-meta" },
+    el("span", { class: "label label-strong" }, "EXP-041"),
+    el("span", { class: "label" }, "tool"),
+    el(
+      "span",
+      { class: "label label-strong exp-state" },
+      el("span", { class: "status-dot", "aria-hidden": "true" }),
+      "Live"
+    ),
+    el("span", { class: "exp-rule", "aria-hidden": "true" }),
+    el("span", { class: "label exp-stack" }, "Curtis et al. 1997 · Kubelka-Munk · WebGL2 · Client-side only")
+  );
+
+  return el(
+    "header",
+    { class: "app-header" },
+    appBar(),
+    el(
+      "div",
+      { class: "container exp-head" },
+      meta,
+      el("h1", { class: "t-h1" }, "Watercolor Lab", el("span", { class: "dot" }, ".")),
+      // Two sentences. The physics gets its say in the bench notes below the
+      // sheet, not above it.
+      el(
+        "p",
+        { class: "t-lede" },
+        "Real watercolor, simulated: water flows across the sheet, pigment rides it and settles, and the paper decides the rest. Thirty-six real pigments, wet-on-wet blooms, granulation, backruns and salt — all live, on your GPU."
+      )
+    )
+  );
+}
+
+// Bench notes, in the site's ledger voice: a label rail on the left and the
+// note beside it. What a painter needs to know that the studio cannot say.
+const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
+  {
+    k: "Wet the sheet first",
+    v: [
+      "Water before paint gives soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a damp wash and let it dry. Backlight shows what the light survives.",
+    ],
+  },
+  {
+    k: "Dried paint is cured",
+    v: [
+      "Once a wash dries it is part of the sheet: glaze over it, but you cannot lift it. The lift tool works on damp washes, and Forever wet keeps the sheet workable for as long as you like.",
+    ],
+  },
+  {
+    k: "The color is physics",
+    v: [
+      "Every swatch and every wash is Kubelka-Munk optics from the absorption and scattering of a real pigment — not alpha blending. Mixing on the sheet and mixing in the well are the same arithmetic.",
+    ],
+  },
+  {
+    k: "It stays on this machine",
+    v: [
+      "There is no server and no analytics. A saved sheet lives in this browser's own storage, which is also why clearing site data deletes it.",
+    ],
+  },
+  {
+    k: "Where it comes from",
+    v: [
+      "The fluid model is ",
+      el(
+        "a",
+        { href: "https://grail.cs.washington.edu/projects/watercolor/" },
+        "Curtis, Anderson, Seims, Fleischer & Salesin, Computer-Generated Watercolor (SIGGRAPH 1997)"
+      ),
+      ", as WebGL2 fragment shaders. The ",
+      el("a", { href: "https://github.com/uxpreview/miniature-spork" }, "source"),
+      " is on GitHub.",
+    ],
+  },
+];
+
+function footer(): HTMLElement {
+  const notes = el("dl", { class: "notes" });
+  for (const note of BENCH_NOTES) {
+    notes.append(el("div", { class: "note-row" }, el("dt", { class: "label" }, note.k), el("dd", {}, ...note.v)));
+  }
+  return el(
+    "footer",
+    { class: "app-footer" },
+    el(
+      "div",
+      { class: "container" },
+      el("h2", { class: "t-display notes-title" }, "Bench notes"),
+      notes,
+      el(
+        "p",
+        { class: "footer-credit" },
+        el("a", { class: "arrow-link", href: LAB_URL }, "EXP-041 in the Lab at ryankm.com", el("span", { "aria-hidden": "true" }, "→"))
+      )
+    )
+  );
+}
+
 const root = document.getElementById("app")!;
 
-root.append(
-  appBar(),
-  el(
-    "header",
-    { class: "container intro" },
-    el("h1", {}, "Watercolor Lab"),
-    el(
-      "p",
-      { class: "lede" },
-      "Real watercolor, simulated: water flows, pigment settles, paper matters. ",
-      "Fluid dynamics after Curtis et al. (SIGGRAPH 1997), Kubelka-Munk pigment optics, and a box of ",
-      "36 real pigments. Wet washes bleed, edges darken as they dry, ultramarine granulates into the ",
-      "tooth of the sheet — all live, on your GPU."
-    )
-  )
-);
+root.append(experimentHead());
 
 try {
   window.__wash = mountStudio(root);
@@ -45,22 +138,4 @@ try {
   );
 }
 
-root.append(
-  el(
-    "footer",
-    { class: "container studio-footer" },
-    el(
-      "p",
-      { class: "footnote" },
-      "Wet the sheet first for soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a ",
-      "damp wash and let it dry. Backlight shows what the light survives. EXP-041 · ",
-      el("a", { href: "https://github.com/uxpreview/miniature-spork" }, "source"),
-      " · after ",
-      el(
-        "a",
-        { href: "https://grail.cs.washington.edu/projects/watercolor/" },
-        "Curtis, Anderson, Seims, Fleischer & Salesin (1997)"
-      )
-    )
-  )
-);
+root.append(footer());

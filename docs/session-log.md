@@ -204,3 +204,18 @@ Chromium under SwiftShader when that path exists (`scripts/browser.mjs`;
 `PW_CHROMIUM` overrides). Renders on Metal are a hair lighter than the
 committed SwiftShader ones — fp16 arithmetic differs by backend — so the
 committed figures were left alone this session, no physics having moved.
+
+## The Lab shape
+
+The page now takes the same shape as Attention Lab (EXP-038), which is the
+shape the site's `/lab/<slug>` route has: the site bar with the trail back
+in the label voice; the record line (EXP-041 · tool · Live · rule · stack);
+the name in display type with the vermillion dot; a two-sentence lede; the
+experiment; then bench notes as a label rail with the note beside it, and
+the arrow-link credit home. Class names, sizes and the masthead give-way
+rule for laptop-height screens are the same as Attention Lab's, so the two
+pages can be diffed by eye. The share card was rebuilt in the Lab's card
+layout — copy left, the experiment's own picture in a hairline frame right —
+in Figtree, which the old card lacked (the container had no font). `.btn-ghost`
+was referenced but never defined here; the class is gone and the buttons wear
+the shared outlined recipe they always rendered with.

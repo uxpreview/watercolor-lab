@@ -281,7 +281,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   const mixBtn = el(
     "button",
     {
-      class: "btn btn-ghost btn-small",
+      class: "btn btn-small",
       type: "button",
       "aria-pressed": "false",
       title: "When on, dipping a pigment adds it to the mix instead of replacing it",
@@ -299,7 +299,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     { class: "well-row" },
     wellCanvas,
     el("div", { class: "pigment-caption well-caption" }, wellName_, wellMeta),
-    el("div", { class: "well-actions" }, mixBtn, el("button", { class: "btn btn-ghost btn-small", type: "button", onclick: rinse }, "Rinse"))
+    el("div", { class: "well-actions" }, mixBtn, el("button", { class: "btn btn-small", type: "button", onclick: rinse }, "Rinse"))
   );
 
   const palette = createPalette(DEFAULT_PIGMENT_ID);
@@ -335,7 +335,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   for (const spec of Object.values(PAPERS)) {
     const btn = el(
       "button",
-      { class: "btn btn-ghost btn-small", type: "button", role: "radio", "aria-checked": spec.kind === "cold-press", onclick: () => selectPaper(spec.kind) },
+      { class: "btn btn-small", type: "button", role: "radio", "aria-checked": spec.kind === "cold-press", onclick: () => selectPaper(spec.kind) },
       spec.name
     );
     paperButtons.set(spec.kind, btn);
@@ -346,7 +346,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   const foreverWetBtn = el(
     "button",
     {
-      class: "btn btn-ghost btn-small",
+      class: "btn btn-small",
       type: "button",
       "aria-pressed": "false",
       title: "Evaporation off: the sheet stays workable forever",
@@ -361,7 +361,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   const rainBtn = el(
     "button",
     {
-      class: "btn btn-ghost btn-small",
+      class: "btn btn-small",
       type: "button",
       "aria-pressed": "false",
       title: "Clean water falls on the sheet and works your paint over",
@@ -377,7 +377,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   // ---- actions -----------------------------------------------------------
   const backlightBtn = el(
     "button",
-    { class: "btn btn-ghost", type: "button", "aria-pressed": "false", onclick: () => setBacklight(!backlight) },
+    { class: "btn", type: "button", "aria-pressed": "false", onclick: () => setBacklight(!backlight) },
     "Backlight"
   );
   const setBacklight = (on: boolean) => {
@@ -403,7 +403,7 @@ export function mountStudio(host: HTMLElement): AppApi {
   const saveBtn = el(
     "button",
     {
-      class: "btn btn-ghost",
+      class: "btn",
       type: "button",
       onclick: async () => {
         saveBtn.textContent = "Drying…";
@@ -453,9 +453,9 @@ export function mountStudio(host: HTMLElement): AppApi {
     { class: "action-col" },
     el("button", { class: "btn btn-primary", type: "button", onclick: () => sim.dryFast() }, "Dry the sheet"),
     backlightBtn,
-    el("button", { class: "btn btn-ghost", type: "button", onclick: () => sim.undo() }, "Undo"),
+    el("button", { class: "btn", type: "button", onclick: () => sim.undo() }, "Undo"),
     saveBtn,
-    el("button", { class: "btn btn-ghost", type: "button", onclick: exportPNG }, "Export PNG"),
+    el("button", { class: "btn", type: "button", onclick: exportPNG }, "Export PNG"),
     confirmButton("Clear sheet", "Really clear?", () => sim.clearSheet())
   );
 
