@@ -161,6 +161,7 @@ label,
 }
 
 .easel {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
@@ -190,6 +191,40 @@ label,
   cursor: crosshair;
   touch-action: none;
 }
+/* A quiet note that floats over the bottom of the desk when the sheet has
+   something to say (lifting cured paint does nothing). Never blocks input. */
+.sheet-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(20px, 3vw, 48px);
+  transform: translate(-50%, 6px);
+  margin: 0;
+  max-width: min(520px, calc(100% - 32px));
+  padding: 8px 14px;
+  border-radius: var(--r-chip);
+  background: var(--strong);
+  color: var(--bg);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: pretty;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-micro) var(--ease-quint),
+    transform var(--dur-micro) var(--ease-quint);
+}
+.sheet-hint.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-hint {
+    transition: opacity var(--dur-micro) linear;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* The lightbox: the desk goes dark so the lit sheet is the brightest thing
    on screen, same move as the calibration room in the eye-tracking rig. */
 body.is-backlit .easel {

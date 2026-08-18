@@ -168,3 +168,39 @@ re-suspends deposit, suppresses re-settling, and drinks a fraction of the
 suspension per step. On a damp wash — which is when a painter actually
 lifts — two passes carve a pale lane with the displaced pigment ridged
 along its edges.
+
+## First desktop session: hosting, and the sheet travels
+
+Production hosting is up: Vercel project `watercolor-lab` on the `ryankm`
+team, git-connected to `uxpreview/miniature-spork` (`main` deploys), custom
+domain `watercolor.ryankm.com` attached and waiting on a Squarespace CNAME.
+
+Two rough edges from the handoff, and one bug that only a real GPU could
+show. **Save sheet was broken on Chrome for Mac.** `serializeDried` trusted
+`IMPLEMENTATION_COLOR_READ_TYPE`, which ANGLE on Metal reports as
+`HALF_FLOAT` for RGBA16F targets — so the guard bailed and every save
+"failed", though `readPixels(RGBA, FLOAT)` works fine there (WebGL2
+guarantees the RGBA/FLOAT pair for float-type color buffers). The readback
+now does the read and checks `getError`, not the advertised type. The
+SwiftShader container had reported `FLOAT` all along, which is why the bug
+never showed.
+
+**A sheet saved on a desk restores on a phone** and back. The dried layer is
+resampled on restore — bilinear, aspect preserved, scaled to fit, centred,
+margins bare paper. Not rotated: a painting stays right-way-up even when the
+sheet under it turns, and the round trip is bounded (the small loss of
+resolution is the price of not showing a landscape sideways). Pure TS
+(`src/data/resample.ts`), pinned by tests.
+
+**Lifting cured paint says so.** The lift tool works on damp washes by design;
+scrubbing dried paint did nothing, silently. `Simulation.probe()` reads a
+small block under the pointer on pointer-down (dried depth, workable paint,
+surface wetness), and when the sheet is cured there, a one-line note floats
+over the desk for three seconds. It never fires on bare paper or a wet wash.
+
+The figure harness now launches the installed Chrome on a desktop (real GPU,
+~24 s per scene at full resolution vs minutes) and falls back to the container
+Chromium under SwiftShader when that path exists (`scripts/browser.mjs`;
+`PW_CHROMIUM` overrides). Renders on Metal are a hair lighter than the
+committed SwiftShader ones — fp16 arithmetic differs by backend — so the
+committed figures were left alone this session, no physics having moved.

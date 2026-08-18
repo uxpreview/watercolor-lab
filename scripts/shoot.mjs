@@ -12,7 +12,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { mkdirSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
-import { chromium } from "playwright-core";
+import { launchChromium } from "./browser.mjs";
 import { RUN, SCENES } from "./scenes.mjs";
 
 const DIST = resolve(import.meta.dirname, "../dist");
@@ -53,11 +53,7 @@ const wanted = only.length > 0 ? SCENES.filter((s) => only.includes(s.name)) : [
 // timeouts and the default worker count leaves headroom.
 const WORKERS = Math.min(Number(process.env.WORKERS ?? 2), wanted.length || 1);
 
-const launchBrowser = () =>
-  chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium",
-    args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--hide-scrollbars"],
-  });
+const launchBrowser = () => launchChromium();
 
 const queue = [...wanted];
 const shootScene = async (page, scene) => {

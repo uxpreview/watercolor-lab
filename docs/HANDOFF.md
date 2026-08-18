@@ -7,16 +7,17 @@ play and the queue.
 
 ## Where things stand
 
-- **Branch**: all work so far is on `claude/sudoaquarelle-ryankm-experience-h8mzty`.
-- **PR #1** (branch → `main`) is open: the full simulator plus feature pass 1
-  (mixing well, lift tool, mobile/portrait, alive modes, saved sheets).
-  https://github.com/uxpreview/miniature-spork/pull/1
-- **Tests**: `npm test` = 314 checks, all passing. `npm run typecheck` clean.
+- **Branch**: `main` holds PR #1 (the simulator + feature pass 1) and PR #2
+  (this doc). Later work is on short-lived branches off `main`, one PR each.
+- **Tests**: `npm test` = 325 checks, all passing. `npm run typecheck` clean.
   `npm run build` runs `tsc` first and refuses to emit on a type error.
-- **Demo**: a Vercel *preview* deployment exists on a scratch project
-  (`fable-test`, team `ryankm`). It is a file-push deploy, not git-connected,
-  and share links expire daily — treat it as disposable. Production hosting
-  is not set up yet (see next steps).
+- **Hosting**: Vercel project `watercolor-lab` (team `ryankm`) is
+  git-connected to `uxpreview/miniature-spork`; `main` deploys to production,
+  every PR gets a preview URL. Custom domain `watercolor.ryankm.com` is
+  attached to the project and waits on DNS (see next steps). The old
+  `fable-test` scratch project is disposable.
+- **Local desktop**: `/Users/ryan/Developer/miniature-spork` on Ryan's Mac.
+  Chrome is installed, the figure harness uses it (real GPU).
 
 ## Start here
 
@@ -64,27 +65,22 @@ headless Chromium (scripted strokes via `window.__wash`, scenes in
 `scripts/scenes.mjs`). It was built inside a GPU-less container under
 SwiftShader, hence the machinery: `?sim=WxH` and `?seed=N` URL params, a
 worker pool, 10-minute timeouts. **On a desktop with a real GPU none of that
-pain applies** — scenes that took 4 minutes render in seconds, so always
-regenerate figures at full resolution (1056×704, the default) after any
-physics/tuning change. Lesson already learned the hard way: never judge
+pain applies** — `scripts/browser.mjs` launches the installed Chrome when the
+container binary is absent (`PW_CHROMIUM=…` overrides), and a scene that took
+4 minutes renders in ~24 s, so always regenerate figures at full resolution
+(1056×704, the default) after any physics/tuning change. Lesson already learned the hard way: never judge
 renders at reduced resolution.
 
 ## Next steps (the queue)
 
 In priority order:
 
-1. **Production hosting** (needs Ryan in the loop):
-   - Create a Vercel project (suggested name `watercolor-lab`) in the
-     dashboard by importing `uxpreview/miniature-spork`. This must be done by
-     a human — the Claude/Vercel integration role cannot create projects on
-     the `ryankm` team.
-   - Merge PR #1 so `main` deploys.
-   - Add the custom domain `watercolor.ryankm.com` to the project, then in
-     Squarespace DNS add CNAME `watercolor` → `cname.vercel-dns.com`.
-   - Sanity-check the live site on desktop + phone; confirm the vendored
-     Figtree woff2 loads (the throwaway preview substituted Google Fonts
-     because the file-push deploy couldn't carry binaries — the git deploy
-     needs no such workaround).
+1. **DNS** (needs Ryan): in Squarespace DNS add CNAME `watercolor` →
+   `cname.vercel-dns.com`. Vercel verifies on its own once the record is
+   live. Then sanity-check the live site on desktop + phone; confirm the
+   vendored Figtree woff2 loads (the throwaway preview substituted Google
+   Fonts because the file-push deploy couldn't carry binaries — the git
+   deploy needs no such workaround).
 
 2. **Feature pass 2** (proposed, not yet approved — confirm scope with Ryan
    before building). Candidates, with the intended angle:
@@ -101,18 +97,23 @@ In priority order:
    - **FILM (timelapse export)**: record canvas frames during painting,
      export WebM via MediaRecorder. Watch memory on phones.
 
-3. **Known rough edges** worth a look before or during pass 2:
-   - Saved sheets are dimension-keyed: a sheet saved on desktop (1056×704)
-     silently fails to restore on a phone (704×1056) and vice versa.
-     Acceptable for now; a resample-on-restore would fix it.
-   - The lift tool works on damp washes by design (dried paint is cured);
-     consider a hint in the UI when someone scrubs dry paint and nothing
-     happens.
+3. **Known rough edges**:
+   - ~~Saved sheets are dimension-keyed~~ — fixed: the dried layer is
+     resampled to fit on restore (`src/data/resample.ts`).
+   - ~~Lift on dry paint does nothing, silently~~ — fixed: a note floats
+     over the desk when the paint under the lift brush is cured
+     (`Simulation.probe`).
    - `docs/figures/*.png` are committed at full res (~5 MB total). Fine for
-     now; revisit if the repo grows.
+     now; revisit if the repo grows. They were rendered under SwiftShader;
+     Metal renders a hair lighter. Regenerate them all in one go on one
+     machine when physics next moves, never piecemeal.
 
 ## Conventions that bit us (so they don't bite you)
 
+- **Float readback**: never gate `readPixels` on
+  `IMPLEMENTATION_COLOR_READ_TYPE` — ANGLE/Metal says `HALF_FLOAT` for
+  RGBA16F yet reads `FLOAT` fine. Use `Simulation.readFloat`, which checks
+  `getError` after the read.
 - **Git identity**: commit with author/committer email
   `23747348+uxpreview@users.noreply.github.com`. Pushes with the personal
   iCloud address are rejected by GitHub's email-privacy setting.
