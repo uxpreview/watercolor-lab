@@ -378,6 +378,7 @@ void main() {
   // reflectance itself, the sediment speckle ghosts through every later
   // glaze — a real sheet never forgets its texture.
   float gran = clamp(texture(uSusP, vUV).y / max(susK.a, 1e-5), 0.0, 1.0);
+  gran *= clamp(pigment * 2.2, 0.15, 1.0); // speckle pools with the paint
   vec2 paper = texture(uPaper, vUV).rg;
   float pit = smoothstep(0.62, 0.32, paper.r * 0.55 + paper.g * 0.45);
   float thickness = 1.0 + gran * (0.9 * pit - 0.35);
@@ -577,7 +578,7 @@ void main() {
   vec3 normal = normalize(vec3((hL - hR) * 2.2, (hD - hU) * 2.2, 1.0));
   vec3 lightDir = normalize(vec3(-0.45, 0.55, 0.9));
   float relief = 0.85 + 0.15 * dot(normal, lightDir);
-  float microGrain = 0.955 + 0.045 * paper.g + uZoomGrain * (hash12(gl_FragCoord.xy) - 0.5);
+  float microGrain = 0.97 + 0.03 * paper.g + uZoomGrain * (hash12(gl_FragCoord.xy) - 0.5);
   // The room's light is not perfectly even across a sheet this size: a
   // gentle falloff away from the light corner keeps the field from reading
   // as a synthetic flat.
@@ -596,7 +597,7 @@ void main() {
   // Weighted toward the structured height octaves rather than the 1px fine
   // grain: pigment texture clumps at fiber scale, it is not white noise.
   float driedPaint = clamp(dried.a * 1.6, 0.0, 1.0);
-  float tooth = 1.0 + ((paper.g - 0.5) * 0.12 + (0.5 - paper.r) * 0.26) * driedPaint;
+  float tooth = 1.0 + ((paper.g - 0.5) * 0.07 + (0.5 - paper.r) * 0.22) * driedPaint;
   vec3 base = dried.rgb * tooth * relief * microGrain * illum * wetDarken;
 
   // Live wet layer: suspension plus fresh deposit as one KM film. The

@@ -91,7 +91,7 @@ export const DEFAULT_PARAMS: Params = {
   saltLift: 0.5,
   edgeSettle: 14,
   substeps: 3,
-  zoomGrain: 0.012,
+  zoomGrain: 0.006,
 }
 
 const WATER_SCALE = 0.055;

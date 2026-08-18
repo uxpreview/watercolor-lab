@@ -128,6 +128,17 @@ angular stars with real reach, quinacridone rose nudged off magenta, and
 the wet-on-wet scene re-choreographed so the blooms actually meet and
 mingle.
 
+**Resolution was a silent variable in every verdict.** The critic rounds
+were run on half-resolution renders (SwiftShader economics), and the
+critics' most persistent complaint — blocky clumps, same-frequency noise
+everywhere, scale mismatch between texture and feature — was partly the
+harness, not the model: at the app's real 1056×704 grid the paper's
+octaves sit at the right scale and the same physics reads as fine sediment
+and delicate drybrush breakup. The shipped figures render at full
+resolution for this reason, and `npm run figures` now defaults to it.
+Lesson recorded for the next experiment: never let the evaluation pipeline
+degrade the thing being evaluated.
+
 **The hero figure took eight attempts** — not because the physics failed
 but because scripted *painting* is hard: a representational landscape kept
 collapsing into stacked ribbons as every stroke spread twice its brush
