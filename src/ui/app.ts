@@ -4,12 +4,13 @@
  * mixing well, and the simulator.
  */
 
-import { beginStroke, strokeTo, tapStamp, TOOLS, type StrokeState, type ToolId } from "../paint/brush";
+import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS, type StrokeState, type ToolId } from "../paint/brush";
 import { DEFAULT_PIGMENT_ID, handlingNote, PIGMENT_BY_ID, type Pigment } from "../paint/pigments";
 import { mixWell, wellName, type WellEntry } from "../paint/mix";
 import { PAPERS, type PaperKind } from "../engine/paper";
 import { Simulation } from "../engine/simulation";
 import { loadSheet, saveSheet } from "../data/store";
+import { fitDried } from "../data/resample";
 import { confirmButton, el } from "./dom";
 import { createPalette, paintChip } from "./palette";
 
@@ -137,6 +138,24 @@ export function mountStudio(host: HTMLElement): AppApi {
   };
 
   // ---- painting ----------------------------------------------------------
+  // ---- lift hint -----------------------------------------------------------
+  // The lift tool re-suspends paint that has settled but not cured. Dried
+  // paint is permanent, as on a real sheet, so scrubbing it does nothing —
+  // say so once, instead of letting the silence read as a bug.
+  const hint = el("p", { class: "sheet-hint", role: "status", "aria-live": "polite" });
+  let hintTimer = 0;
+  const showHint = (text: string) => {
+    hint.textContent = text;
+    hint.classList.add("is-visible");
+    window.clearTimeout(hintTimer);
+    hintTimer = window.setTimeout(() => hint.classList.remove("is-visible"), 3200);
+  };
+  const checkLiftTarget = (x: number, y: number) => {
+    const probe = sim.probe(x, y, Math.min(12, brushRadius(TOOLS.lift, size) * 0.5));
+    const cured = probe.dried > 0.02 && probe.workable < 0.004 && probe.wet < 0.02;
+    if (cured) showHint("That paint has dried and is cured. Lift works on damp washes — wet it first, or paint over it.");
+  };
+
   let lastSalt = { x: -1e9, y: -1e9 };
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -150,6 +169,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     }
     stroke = beginStroke(TOOLS[tool], size, water, load, at.x, at.y, (e.pointerId + 1) * 7919);
     strokeMoved = false;
+    if (tool === "lift") checkLiftTarget(at.x, at.y);
   });
 
   const strokePigment = () => (stroke && stroke.tool.pigment > 0 ? brushPigment : null);
@@ -418,10 +438,13 @@ export function mountStudio(host: HTMLElement): AppApi {
 
   if (!scripted) {
     loadSheet().then((rec) => {
-      if (rec && rec.width === sim.simWidth && rec.height === sim.simHeight) {
-        sim.setPaper(rec.paperKind, true, rec.paperSeed);
-        sim.restoreDried(rec.dried);
-      }
+      if (!rec || rec.width <= 0 || rec.height <= 0) return;
+      if (rec.dried.length !== rec.width * rec.height * 4) return;
+      // A sheet saved on a desk (landscape) restores on a phone (portrait)
+      // and back: scaled to fit, centred, margins bare paper.
+      const dried = fitDried(rec.dried, rec.width, rec.height, sim.simWidth, sim.simHeight);
+      sim.setPaper(rec.paperKind, true, rec.paperSeed);
+      sim.restoreDried(dried);
     });
   }
 
@@ -452,7 +475,7 @@ export function mountStudio(host: HTMLElement): AppApi {
     el("section", { class: "box" }, el("h2", { class: "box-title" }, "Sheet"), actions)
   );
 
-  const easel = el("div", { class: "easel" }, canvas);
+  const easel = el("div", { class: "easel" }, canvas, hint);
   host.append(el("div", { class: "studio container" }, easel, toolbox));
   fitCanvas();
 

@@ -11,6 +11,7 @@ import { handlingNote, PIGMENTS } from "../paint/pigments";
 import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS } from "../paint/brush";
 import { mixWell, wellName } from "../paint/mix";
 import { generatePaper, PAPERS } from "../engine/paper";
+import { fitDried, fitRect } from "../data/resample";
 
 let failures = 0;
 let checks = 0;
@@ -298,6 +299,72 @@ section("paper: the sheet is plausible");
   // Determinism: same seed, same sheet.
   const again = generatePaper(160, 120, PAPERS.rough, 11);
   ok(rough.data.every((v, i) => v === again.data[i]), "paper is reproducible from its seed");
+}
+
+// --- Saved sheets across devices ------------------------------------------
+
+section("store: a saved sheet fits any sheet");
+{
+  const [pr, pg, pb] = PAPER_REFLECTANCE;
+  const bare = (buf: Float32Array, i: number) =>
+    Math.abs(buf[i * 4] - pr) < 1e-6 && Math.abs(buf[i * 4 + 1] - pg) < 1e-6 && Math.abs(buf[i * 4 + 2] - pb) < 1e-6 && buf[i * 4 + 3] === 0;
+
+  // Same dimensions: identity, same buffer back.
+  const same = new Float32Array(6 * 4 * 4);
+  ok(fitDried(same, 6, 4, 6, 4) === same, "matching dimensions restore untouched");
+
+  // The desk/phone pair, at the real grid: landscape 3:2 into portrait 2:3.
+  const rL = fitRect(1056, 704, 704, 1056);
+  ok(rL.w === 704 && rL.h === 469 && rL.x === 0 && rL.y === 293, `landscape fits portrait full-width, centred (${rL.w}×${rL.h} at ${rL.x},${rL.y})`);
+  const rP = fitRect(704, 1056, 1056, 704);
+  ok(rP.w === 469 && rP.h === 704 && rP.x === 293 && rP.y === 0, `portrait fits landscape full-height, centred (${rP.w}×${rP.h} at ${rP.x},${rP.y})`);
+  ok(rL.w <= 704 && rL.h <= 1056 && rP.w <= 1056 && rP.h <= 704, "the fit never overflows the sheet");
+
+  // A small landscape sheet with a dark square painted on the left half.
+  const sw = 12;
+  const sh = 8;
+  const src = new Float32Array(sw * sh * 4);
+  for (let y = 0; y < sh; y++)
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4;
+      const painted = x < 6;
+      src[i] = painted ? 0.2 : pr;
+      src[i + 1] = painted ? 0.1 : pg;
+      src[i + 2] = painted ? 0.05 : pb;
+      src[i + 3] = painted ? 1.5 : 0;
+    }
+  const dw = 8;
+  const dh = 12;
+  const out = fitDried(src, sw, sh, dw, dh);
+  ok(out.length === dw * dh * 4, "output has the destination's size");
+  const rect = fitRect(sw, sh, dw, dh); // 8×5 (12×8 · 2/3 = 8×5.33 → 5), y = 3
+  ok(rect.w === 8 && rect.h === 5 && rect.x === 0 && rect.y === 3, `small fit lands where expected (${rect.w}×${rect.h} at ${rect.x},${rect.y})`);
+
+  // Margins are bare paper, top and bottom.
+  let marginsBare = true;
+  for (let y = 0; y < dh; y++) {
+    if (y >= rect.y && y < rect.y + rect.h) continue;
+    for (let x = 0; x < dw; x++) if (!bare(out, y * dw + x)) marginsBare = false;
+  }
+  ok(marginsBare, "margins outside the fit are bare paper");
+
+  // Inside the fit, the left is painted, the right is bare, and the seam is
+  // a blend — never anything outside the source's range.
+  const rowIdx = (x: number) => (rect.y + 2) * dw + x;
+  ok(out[rowIdx(0) * 4 + 3] > 1.4, "painted side survives the resample");
+  ok(bare(out, rowIdx(dw - 1)), "bare side stays bare");
+  let inRange = true;
+  for (let i = 0; i < out.length; i += 4) {
+    if (out[i + 3] < -1e-9 || out[i + 3] > 1.5 + 1e-9) inRange = false;
+    if (out[i] < 0.2 - 1e-6 || out[i] > pr + 1e-6) inRange = false;
+  }
+  ok(inRange, "bilinear never leaves the source's range");
+
+  // Round trip through the other orientation and back never grows the depth.
+  const back = fitDried(out, dw, dh, sw, sh);
+  let maxDepth = 0;
+  for (let i = 3; i < back.length; i += 4) maxDepth = Math.max(maxDepth, back[i]);
+  ok(back.length === src.length && maxDepth <= 1.5 + 1e-9, "round trip is bounded");
 }
 
 // ---------------------------------------------------------------------------

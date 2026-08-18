@@ -6,7 +6,7 @@
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium } from "playwright-core";
+import { launchChromium } from "./browser.mjs";
 
 const figure = resolve(import.meta.dirname, "../docs/figures/landscape.png");
 const out = resolve(import.meta.dirname, "../public/opengraph.png");
@@ -36,10 +36,7 @@ const html = `<!doctype html><html><head><style>
   </div>
 </body></html>`;
 
-const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium",
-  args: ["--hide-scrollbars"],
-});
+const browser = await launchChromium();
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
 await page.setContent(html);
 await page.waitForLoadState("networkidle");

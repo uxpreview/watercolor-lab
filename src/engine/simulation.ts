@@ -639,21 +639,56 @@ export class Simulation {
     this.fastDrySteps = 0;
   }
 
+  /** Samples the sheet under a point: how much paint has cured into the
+   * dried substrate, how much is still workable (settled or in suspension),
+   * and how wet the surface is. A small block average, read back from the GPU,
+   * so use it on discrete events (a pointer down), never per frame. */
+  probe(x: number, y: number, radius = 3): { dried: number; workable: number; wet: number } {
+    const { gl } = this.ctx;
+    const r = Math.max(1, Math.round(radius));
+    const cx = Math.round(x);
+    const cy = Math.round(this.simHeight - y); // pointer y is top-down
+    const x0 = Math.max(0, cx - r);
+    const y0 = Math.max(0, cy - r);
+    const w = Math.min(this.simWidth, cx + r + 1) - x0;
+    const h = Math.min(this.simHeight, cy + r + 1) - y0;
+    if (w <= 0 || h <= 0) return { dried: 0, workable: 0, wet: 0 };
+    const buf = new Float32Array(w * h * 4);
+    const meanAlpha = (target: Target): number => {
+      if (!this.readFloat(target, x0, y0, w, h, buf)) return 0;
+      let sum = 0;
+      for (let i = 3; i < buf.length; i += 4) sum += buf[i];
+      return sum / (w * h);
+    };
+    const dried = meanAlpha(this.dried.read);
+    const workable = meanAlpha(this.depK.read) + meanAlpha(this.susK.read);
+    const wet = meanAlpha(this.flow.read);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { dried, workable, wet };
+  }
+
   /** Reads the dried layer back for persistence. Returns null when the
    * implementation cannot read float pixels (rare on WebGL2 hardware). */
   serializeDried(): Float32Array | null {
     const { gl } = this.ctx;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.dried.read.fbo);
-    const type = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE) as number;
-    const format = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT) as number;
-    if (type !== gl.FLOAT || format !== gl.RGBA) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      return null;
-    }
     const out = new Float32Array(this.simWidth * this.simHeight * 4);
-    gl.readPixels(0, 0, this.simWidth, this.simHeight, gl.RGBA, gl.FLOAT, out);
+    const okay = this.readFloat(this.dried.read, 0, 0, this.simWidth, this.simHeight, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return out;
+    return okay ? out : null;
+  }
+
+  /** readPixels(RGBA, FLOAT) from a float target. WebGL2 guarantees this
+   * combination for float-type color buffers even when the implementation
+   * advertises HALF_FLOAT as its preferred read type for RGBA16F (ANGLE on
+   * Metal does), so trust the call and check the error, not the parameter. */
+  private readFloat(target: Target, x: number, y: number, w: number, h: number, out: Float32Array): boolean {
+    const { gl } = this.ctx;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+    while (gl.getError() !== gl.NO_ERROR) {
+      /* drain stale errors so the check below is ours */
+    }
+    gl.readPixels(x, y, w, h, gl.RGBA, gl.FLOAT, out);
+    return gl.getError() === gl.NO_ERROR;
   }
 
   /** Restores a previously serialized dried layer onto a fresh sheet. */
