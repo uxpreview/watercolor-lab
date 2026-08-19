@@ -12,9 +12,9 @@ play and the queue.
 - **Tests**: `npm test` = 325 checks, all passing. `npm run typecheck` clean.
   `npm run build` runs `tsc` first and refuses to emit on a type error.
 - **Hosting**: Vercel project `watercolor-lab` (team `ryankm`) is
-  git-connected to `uxpreview/miniature-spork`; `main` deploys to production,
+  git-connected to `uxpreview/watercolor-lab` (renamed from `miniature-spork`, 2026-08-19; old URLs redirect); `main` deploys to production,
   every PR gets a preview URL. Custom domain `watercolor.ryankm.com` is
-  attached to the project and waits on DNS (see next steps). The old
+  attached and DNS is live (2026-08-19): the address works. The old
   `fable-test` scratch project is disposable.
 - **The Lab index**: this experiment is listed at ryankm.com/lab
   (2026-08-19) as a live off-site tool with its own card miniature, and it
@@ -83,9 +83,9 @@ renders at reduced resolution.
 
 In priority order:
 
-1. **DNS** (needs Ryan): in Squarespace DNS add CNAME `watercolor` →
-   `cname.vercel-dns.com`. Vercel verifies on its own once the record is
-   live. Then sanity-check the live site on desktop + phone; confirm the
+1. ~~**DNS** (needs Ryan)~~ — done (2026-08-19): the Squarespace CNAME is
+   live and the domain is attached, so watercolor.ryankm.com works. Still
+   worth a sanity-check of the live site on desktop + phone; confirm the
    vendored Figtree woff2 loads (the throwaway preview substituted Google
    Fonts because the file-push deploy couldn't carry binaries — the git
    deploy needs no such workaround).

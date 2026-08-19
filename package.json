@@ -17,7 +17,7 @@
   "homepage": "https://watercolor.ryankm.com/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/uxpreview/miniature-spork.git"
+    "url": "git+https://github.com/uxpreview/watercolor-lab.git"
   },
   "engines": {
     "node": ">=20"

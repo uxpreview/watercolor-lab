@@ -93,7 +93,7 @@ const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
         "Curtis, Anderson, Seims, Fleischer & Salesin, Computer-Generated Watercolor (SIGGRAPH 1997)"
       ),
       ", as WebGL2 fragment shaders. The ",
-      el("a", { href: "https://github.com/uxpreview/miniature-spork" }, "source"),
+      el("a", { href: "https://github.com/uxpreview/watercolor-lab" }, "source"),
       " is on GitHub.",
     ],
   },
