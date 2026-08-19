@@ -52,7 +52,7 @@ const html = `<!doctype html><html><head><style>
   .frame img { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; display: block; }
 </style></head><body>
   <div class="copy">
-    <div class="kicker">EXP-041 · Tool · The Lab</div>
+    <div class="kicker">EXP-040 · Tool · The Lab</div>
     <div class="title">Watercolor Lab<span class="dot">.</span></div>
     <div class="sub">A real watercolor simulator.<br>Real pigments, real fluid, your browser.</div>
     <div class="site">ryankm.com</div>

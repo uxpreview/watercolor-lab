@@ -1,4 +1,4 @@
-# Handoff — Watercolor Lab (EXP-041)
+# Handoff — Watercolor Lab (EXP-040)
 
 For the next working session, starting fresh on a local desktop clone.
 Read this top to bottom before writing code; the README is the public story,
@@ -16,6 +16,14 @@ play and the queue.
   every PR gets a preview URL. Custom domain `watercolor.ryankm.com` is
   attached to the project and waits on DNS (see next steps). The old
   `fable-test` scratch project is disposable.
+- **The Lab index**: this experiment is listed at ryankm.com/lab
+  (2026-08-19) as a live off-site tool with its own card miniature, and it
+  leads the shelf and the home page's Lab stage.
+- **The number**: originally shipped as EXP-041 with EXP-040 unassigned;
+  renumbered to EXP-040 on Ryan's call (2026-08-19), before the custom
+  domain went live, so the ledger stays dense. Everything in this repo
+  (page chrome, metadata, README, OG card) says EXP-040; only
+  `docs/session-log.md` keeps the old number, as history.
 - **Local desktop**: `/Users/ryan/Developer/miniature-spork` on Ryan's Mac.
   Chrome is installed, the figure harness uses it (real GPU).
 

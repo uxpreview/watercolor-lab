@@ -14,7 +14,7 @@ declare global {
 }
 
 // --- The experiment page shell -------------------------------------------
-// This tool is EXP-041 in the Lab on ryankm.com and it is hosted here rather
+// This tool is EXP-040 in the Lab on ryankm.com and it is hosted here rather
 // than there, so the page has to do the work the site's /lab/<slug> route
 // normally does: the trail back up, the record voice (number, kind, state,
 // then the stack), the claim in display type, and the lede. Same order, same
@@ -24,7 +24,7 @@ function experimentHead(): HTMLElement {
   const meta = el(
     "div",
     { class: "exp-meta" },
-    el("span", { class: "label label-strong" }, "EXP-041"),
+    el("span", { class: "label label-strong" }, "EXP-040"),
     el("span", { class: "label" }, "tool"),
     el(
       "span",
@@ -115,7 +115,7 @@ function footer(): HTMLElement {
       el(
         "p",
         { class: "footer-credit" },
-        el("a", { class: "arrow-link", href: LAB_URL }, "EXP-041 in the Lab at ryankm.com", el("span", { "aria-hidden": "true" }, "→"))
+        el("a", { class: "arrow-link", href: LAB_URL }, "EXP-040 in the Lab at ryankm.com", el("span", { "aria-hidden": "true" }, "→"))
       )
     )
   );
