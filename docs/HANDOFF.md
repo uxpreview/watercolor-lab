@@ -16,6 +16,11 @@ play and the queue.
   every PR gets a preview URL. Custom domain `watercolor.ryankm.com` is
   attached to the project and waits on DNS (see next steps). The old
   `fable-test` scratch project is disposable.
+- **The Lab index**: EXP-041 is listed at ryankm.com/lab (2026-08-19) as a
+  live off-site tool with its own card miniature, and it leads the shelf and
+  the home page's Lab stage. EXP-040 was never assigned; the portfolio's
+  `lib/data/lab.ts` records the gap rather than renumbering this deployed
+  page.
 - **Local desktop**: `/Users/ryan/Developer/miniature-spork` on Ryan's Mac.
   Chrome is installed, the figure harness uses it (real GPU).
 
