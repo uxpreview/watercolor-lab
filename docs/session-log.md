@@ -315,3 +315,48 @@ sheet, where a fullscreen control is expected: filled, with its icon and its
 key (F). Ryan's note was that it did not feel like the important feature it
 is; a plain outlined pill at the far end of a row of six reads as one more
 action. The strip is now only actions on the paint.
+
+## The phone studio
+
+The phone layout was the desktop bench squeezed into one column: masthead,
+sheet, a six-button grid, then four collapsibles, with the footer below.
+Painting meant scrolling between the sheet and everything else, undo was two
+screens from the stroke it should take back, and a second finger resting on
+the glass painted a second stroke. Measured against what phone painting
+apps actually do (Procreate Pocket, Adobe Fresco, Sketchbook), the misses
+were the same three every time: the canvas was not the screen, the reachable
+controls were not in thumb reach, and the standard gestures did nothing.
+
+The redesign is those three fixes and nothing else:
+
+- **The sheet gets the screen.** The masthead drops a type size on a phone
+  and `layoutSheet()` caps the sheet so sheet plus thumb bar fit one screen.
+  The bench leaves the page flow entirely.
+- **A thumb bar.** Four controls fixed at the bottom edge, in the zone a
+  thumb covers without a grip change: the mixing well's chip (the same KM
+  physics chip as the bench), the current brush's icon and name, Undo, and
+  Dry filled as the primary. The first two open the drawer to their box.
+- **The bench is a bottom sheet.** The same drawer focus mode already had,
+  now the phone's standard state: slides over the sheet (the painting stays
+  visible above it, which is the point of a bottom sheet), scrim to close,
+  grab handle, safe-area padding, Escape closes it. The action strip rides
+  in as its own box on a phone.
+- **Two-finger tap is undo.** The one gesture every touch painting app
+  shares. A second finger down cancels painting (it used to overwrite the
+  live stroke's state); a quick release fires `sim.undo()`; if the first
+  finger already left paint, the gesture takes that partial stroke back
+  instead. Judged by the events' own timestamps, not `performance.now()`,
+  because under a heavy wash the handlers can lag the tap by more than the
+  350 ms window. The undo snapshot moved from pointerdown to just before a
+  stroke's first splat so a gesture never spends an undo slot on a no-op
+  state; that also stopped taps-that-paint-nothing from eating undo depth
+  on every pointer type.
+- **Touch ergonomics.** 44px minimum targets under a coarse pointer,
+  fingertip-size slider thumbs (the native Android thumb is a grain of
+  rice), `viewport-fit=cover` plus safe-area insets for the fixed bars, and
+  the sheet opts out of the long-press callout so a slow stroke is never a
+  context menu.
+
+Desktop is untouched except for the shared drawer CSS and the snapshot
+timing. The focus-mode action-strip pull-out is scoped to desks, since on a
+phone the strip lives in the drawer.

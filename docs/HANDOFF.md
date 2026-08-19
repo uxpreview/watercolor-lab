@@ -103,15 +103,18 @@ In priority order:
    - **FILM (timelapse export)**: record canvas frames during painting,
      export WebM via MediaRecorder. Watch memory on phones.
 
-3. **Layout** (PR #7): the controls are a bench under the sheet, sized by
-   `layoutSheet()` in `app.ts`: on a wide desk (≥1180px) and on a phone the
-   sheet is as wide as the bench (Ryan's call, PR #8); on a narrow desk sheet
-   + strip + bench fit one screen; Focus
-   mode makes the sheet the window with the bench as a drawer; phones get an
-   edge-to-edge desk and collapsible boxes; the Brushes box paints a dab of
-   the current brush and a fine pointer wears the brush's ring. If the bench
-   grows taller, the sheet shrinks to keep the screen: mind that when adding
-   controls. UI copy carries no em dashes (Ryan's call); keep it that way.
+3. **Layout** (PR #7, phone pass 2026-08-19): the controls are a bench under
+   the sheet, sized by `layoutSheet()` in `app.ts`: on a wide desk (≥1180px)
+   the sheet is as wide as the bench (Ryan's call, PR #8); on a narrow desk
+   sheet + strip + bench fit one screen; Focus mode makes the sheet the
+   window with the bench as a drawer; the Brushes box paints a dab of the
+   current brush and a fine pointer wears the brush's ring. On a phone the
+   bench is a fixed bottom-sheet drawer (`body.is-phone`), a thumb bar
+   carries well/brush/undo/dry, the sheet is capped so sheet + bar fit one
+   screen, and a two-finger tap is undo (see "The phone studio" in the
+   session log). If the bench grows taller on a desk, the sheet shrinks to
+   keep the screen: mind that when adding controls. UI copy carries no em
+   dashes (Ryan's call); keep it that way.
 
 4. **Known rough edges**:
    - ~~Saved sheets are dimension-keyed~~ — fixed: the dried layer is

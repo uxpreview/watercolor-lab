@@ -56,6 +56,8 @@ const ICONS: Record<string, string> = {
   water: `<svg viewBox="0 0 24 24"><path d="M12 3.5c2.8 3.9 6 7.6 6 11a6 6 0 1 1-12 0c0-3.4 3.2-7.1 6-11z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`,
   lift: `<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="9" rx="3" fill="currentColor" opacity="0.8"/><path d="M8 17c0 1.2-.9 2.5-.9 2.5M12 17c0 1.2-.9 2.5-.9 2.5M16 17c0 1.2-.9 2.5-.9 2.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`,
   salt: `<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 4l1 2.2L15.2 7 13 8l-1 2.2L11 8l-2.2-1L11 6.2z"/><circle cx="6.5" cy="13.5" r="1.2"/><circle cx="12" cy="16" r="1.2"/><circle cx="17.5" cy="13.5" r="1.2"/><circle cx="9" cy="19.5" r="1"/><circle cx="15" cy="19.5" r="1"/></g></svg>`,
+  undo: `<svg viewBox="0 0 24 24"><path d="M8.5 4.5L4 9l4.5 4.5M4 9h9.5a5.5 5.5 0 0 1 0 11H9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  dry: `<svg viewBox="0 0 24 24"><path d="M3 8h10a3 3 0 1 0-3-3M3 13h14a3 3 0 1 1-3 3M3 18h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
 };
 
 function iconButton(name: string, label: string, onClick: () => void): HTMLButtonElement {
@@ -161,14 +163,59 @@ export function mountStudio(host: HTMLElement): AppApi {
   };
 
   let lastSalt = { x: -1e9, y: -1e9 };
+  // The undo snapshot is taken just before the stroke's first mark, not on
+  // pointerdown: a touch that turns out to be a gesture must not spend an
+  // undo slot on a state identical to the one before it.
+  let strokeSnapshotted = false;
+  const ensureSnapshot = () => {
+    if (strokeSnapshotted) return;
+    sim.snapshot();
+    strokeSnapshotted = true;
+  };
+  // On touch, salt waits for the finger to move or lift, so a two-finger
+  // gesture that starts on the salt tool never drops a grain.
+  let pendingSalt: { x: number; y: number } | null = null;
+  // Two fingers on the sheet are a gesture, not two brushes: painting stops,
+  // and a quick two-finger tap is undo — the shortcut every touch painting
+  // app shares (Procreate, Fresco, Sketchbook). If the first finger already
+  // left paint, the gesture cancels that partial stroke instead.
+  const touches = new Set<number>();
+  let gestureStart = 0;
+  let gestureConsumed = false;
+
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
+    if (e.pointerType === "touch") {
+      touches.add(e.pointerId);
+      if (touches.size === 2) {
+        // The event's own timestamp, not performance.now(): under a heavy
+        // wash the frame loop can lag the handlers by more than the tap.
+        gestureStart = e.timeStamp;
+        gestureConsumed = false;
+        if (strokeSnapshotted) {
+          // The first finger painted before the second landed: take that
+          // partial stroke back off the sheet, and the tap is spent.
+          sim.undo();
+          gestureConsumed = true;
+        }
+        stroke = null;
+        pendingSalt = null;
+        strokeSnapshotted = false;
+        return;
+      }
+      if (touches.size > 2) return;
+    }
     const at = toSim(e);
-    sim.snapshot();
+    strokeSnapshotted = false;
     if (tool === "salt") {
-      sim.addSalt(at.x, at.y);
-      lastSalt = at;
+      if (e.pointerType === "touch") {
+        pendingSalt = at;
+      } else {
+        ensureSnapshot();
+        sim.addSalt(at.x, at.y);
+        lastSalt = at;
+      }
       return;
     }
     stroke = beginStroke(TOOLS[tool], size, water, load, at.x, at.y, (e.pointerId + 1) * 7919);
@@ -179,10 +226,17 @@ export function mountStudio(host: HTMLElement): AppApi {
   const strokePigment = () => (stroke && stroke.tool.pigment > 0 ? brushPigment : null);
 
   canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch" && touches.size >= 2) return;
     const events = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
     if (tool === "salt") {
       if (e.buttons === 0) return;
       const at = toSim(e);
+      if (pendingSalt) {
+        ensureSnapshot();
+        sim.addSalt(pendingSalt.x, pendingSalt.y);
+        lastSalt = pendingSalt;
+        pendingSalt = null;
+      }
       if (Math.hypot(at.x - lastSalt.x, at.y - lastSalt.y) > 60) {
         sim.addSalt(at.x, at.y);
         lastSalt = at;
@@ -195,6 +249,7 @@ export function mountStudio(host: HTMLElement): AppApi {
       const pressure = (ev as PointerEvent).pressure > 0 ? (ev as PointerEvent).pressure : 0.5;
       const stamps = strokeTo(stroke, at.x, at.y, pressure);
       if (stamps.length > 0) {
+        ensureSnapshot();
         strokeMoved = true;
         sim.splat(stamps, strokePigment());
         if (stroke.tool.id === "lift") sim.addScrub(stamps);
@@ -203,10 +258,31 @@ export function mountStudio(host: HTMLElement): AppApi {
   });
 
   const endStroke = (e: PointerEvent) => {
+    if (e.pointerType === "touch") {
+      touches.delete(e.pointerId);
+      if (gestureStart > 0) {
+        if (touches.size === 0) {
+          const quick = e.timeStamp - gestureStart < 350;
+          gestureStart = 0;
+          if (quick && !gestureConsumed) sim.undo();
+          gestureConsumed = false;
+        }
+        stroke = null;
+        pendingSalt = null;
+        return;
+      }
+    }
+    if (pendingSalt) {
+      ensureSnapshot();
+      sim.addSalt(pendingSalt.x, pendingSalt.y);
+      lastSalt = pendingSalt;
+      pendingSalt = null;
+    }
     if (stroke && !strokeMoved) {
       // A tap still leaves a mark — a loaded brush touched the sheet.
       const pressure = e.pressure > 0 ? e.pressure : 0.5;
       const stamp = tapStamp(stroke, pressure);
+      ensureSnapshot();
       sim.splat([stamp], strokePigment());
       if (stroke.tool.id === "lift") sim.addScrub([stamp]);
     }
@@ -231,21 +307,27 @@ export function mountStudio(host: HTMLElement): AppApi {
   // ---- the mixing well ---------------------------------------------------
   const WELL_CHIP = 44;
   const wellCanvas = el("canvas", { width: WELL_CHIP, height: WELL_CHIP, class: "well-swatch" });
+  // The thumb bar's copy of the well: same physics chip, painted in the same
+  // pass, so the bar always shows the paint the brush is actually carrying.
+  const barWell = el("canvas", { width: 28, height: 28, class: "bar-swatch", "aria-hidden": "true" });
   const wellName_ = el("span", { class: "pigment-name" });
   const wellMeta = el("span", { class: "pigment-meta" });
   const recentRow = el("div", { class: "recent-row", "aria-label": "Recent pigments" });
   let recents: Pigment[] = [];
 
   const renderWell = () => {
-    const ctx2d = wellCanvas.getContext("2d")!;
     if (brushPigment) {
       paintChip(wellCanvas, brushPigment);
+      paintChip(barWell, brushPigment);
       wellName_.textContent = wellName(well);
       wellMeta.textContent =
         well.length > 1 ? `mix · ${handlingNote(brushPigment)}` : `${brushPigment.code} · ${handlingNote(brushPigment)}`;
     } else {
-      ctx2d.fillStyle = "#f2ead9";
-      ctx2d.fillRect(0, 0, WELL_CHIP, WELL_CHIP);
+      for (const c of [wellCanvas, barWell]) {
+        const ctx2d = c.getContext("2d")!;
+        ctx2d.fillStyle = "#f2ead9";
+        ctx2d.fillRect(0, 0, c.width, c.height);
+      }
       wellName_.textContent = "Rinsed";
       wellMeta.textContent = "clean water. Dip a pigment";
     }
@@ -468,9 +550,9 @@ export function mountStudio(host: HTMLElement): AppApi {
     else focusBtn.focus();
   };
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && focus) {
+    if (e.key === "Escape") {
       if (drawerOpen) setDrawer(false);
-      else setFocus(false);
+      else if (focus) setFocus(false);
     }
     const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
     if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.altKey && !typing) {
@@ -480,10 +562,16 @@ export function mountStudio(host: HTMLElement): AppApi {
   });
 
   // ---- toolbox -----------------------------------------------------------
+  // The thumb bar's brush button wears the current tool's icon and name, so
+  // the bar reads what the finger is about to do without opening anything.
+  const brushBarIcon = el("span", { class: "bar-icon", "aria-hidden": "true" });
+  const brushBarLabel = el("span", { class: "bar-label" }, "Brush");
   const toolButtons = new Map<string, HTMLButtonElement>();
   const selectTool = (id: ToolId | "salt") => {
     tool = id;
     for (const [key, btn] of toolButtons) btn.classList.toggle("is-active", key === id);
+    brushBarIcon.innerHTML = ICONS[id] ?? "";
+    brushBarLabel.textContent = id === "salt" ? "Salt" : TOOLS[id as ToolId].name;
     renderPreview();
   };
   const toolRow = el("div", { class: "tool-row", role: "toolbar", "aria-label": "Brushes" });
@@ -694,28 +782,76 @@ export function mountStudio(host: HTMLElement): AppApi {
   };
   const subRow = (label: string, row: HTMLElement) => el("div", { class: "sub-row" }, el("h3", { class: "sub-title" }, label), row);
 
+  const pigmentsBox = box("Pigments", true, "box-pigments", wellRow, recentRow, palette.root);
+  const brushesBox = box(
+    "Brushes",
+    true,
+    "box-brushes",
+    toolRow,
+    el(
+      "div",
+      { class: "brush-controls" },
+      el("div", { class: "slider-col" }, sizeCtl.root, waterCtl.root, loadCtl.root),
+      el("div", { class: "brush-preview" }, previewCanvas, previewLine)
+    )
+  );
   const bench = el(
     "aside",
     { class: "bench" },
-    box("Pigments", true, "box-pigments", wellRow, recentRow, palette.root),
-    box(
-      "Brushes",
-      true,
-      "box-brushes",
-      toolRow,
-      el(
-        "div",
-        { class: "brush-controls" },
-        el("div", { class: "slider-col" }, sizeCtl.root, waterCtl.root, loadCtl.root),
-        el("div", { class: "brush-preview" }, previewCanvas, previewLine)
-      )
-    ),
+    pigmentsBox,
+    brushesBox,
     box("Paper", false, "box-paper", paperRow, subRow("Alive", el("div", { class: "paper-row" }, foreverWetBtn, rainBtn))),
-    box("X-ray", false, "box-xray", xrayRow, xrayWhat, xrayRamp)
+    box("X-ray", false, "box-xray", xrayRow, xrayWhat, xrayRamp),
+    // On a phone the strip lives in the drawer with everything else; the two
+    // actions a painting needs mid-stroke (undo, dry) ride the thumb bar.
+    phone ? box("Sheet actions", false, "box-actions", actions) : null
   );
 
   const easel = el("div", { class: "easel" }, canvas, ring, hint, focusBtn);
-  host.append(el("div", { class: "studio container" }, easel, actions, bench, focusBar));
+
+  // ---- the thumb bar (phone) ------------------------------------------------
+  // The pattern every touch painting app converges on: the canvas gets the
+  // screen, the four most-reached controls sit fixed in the thumb zone, and
+  // everything else is a bottom sheet over the painting, not a page below it.
+  const openBox = (target: HTMLElement) => {
+    setDrawer(true);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    requestAnimationFrame(() => {
+      bench.scrollTop = Math.max(0, target.offsetTop - 12);
+    });
+  };
+  const barButton = (label: string, cls: string, onclick: () => void, ...lead: HTMLElement[]) =>
+    el("button", { class: `bar-btn ${cls}`, type: "button", onclick }, ...lead, el("span", { class: "bar-label" }, label));
+  const barIcon = (name: string) => {
+    const span = el("span", { class: "bar-icon", "aria-hidden": "true" });
+    span.innerHTML = ICONS[name] ?? "";
+    return span;
+  };
+  const brushBarBtn = el(
+    "button",
+    { class: "bar-btn", type: "button", onclick: () => openBox(brushesBox) },
+    brushBarIcon,
+    brushBarLabel
+  );
+  const sheetBar = phone
+    ? el(
+        "div",
+        { class: "sheet-bar", role: "toolbar", "aria-label": "Painting controls" },
+        barButton("Paints", "", () => openBox(pigmentsBox), barWell),
+        brushBarBtn,
+        barButton("Undo", "", () => sim.undo(), barIcon("undo")),
+        barButton("Dry", "bar-btn-primary", () => sim.dryFast(), barIcon("dry"))
+      )
+    : null;
+
+  if (phone) {
+    document.body.classList.add("is-phone");
+    host.append(el("div", { class: "studio container" }, easel, bench, focusBar));
+    const scrim = el("div", { class: "drawer-scrim", "aria-hidden": "true", onclick: () => setDrawer(false) });
+    document.body.append(scrim, sheetBar!);
+  } else {
+    host.append(el("div", { class: "studio container" }, easel, actions, bench, focusBar));
+  }
 
   // ---- sheet sizing -------------------------------------------------------
   // The biggest sheet of the right aspect that fits the desk's width and,
@@ -746,13 +882,18 @@ export function mountStudio(host: HTMLElement): AppApi {
     let capH: number;
     if (focus) {
       // The strip and the focus buttons sit under the sheet, not over it.
-      capH = window.innerHeight - padY - (portrait ? 112 : 64);
-    } else if (portrait || wideDesk.matches) {
-      // A phone, or a desk wide enough for the four-column bench: the sheet
-      // is as wide as the bench beneath it. On a wide desk that is Ryan's
-      // call over the one-screen rule (a full-width 3:2 sheet is taller than
-      // a laptop's screen; the bench is one scroll below, and Focus is there
-      // for the sheet alone).
+      // On a phone only the focus buttons do; the strip lives in the drawer.
+      capH = window.innerHeight - padY - (portrait ? 76 : 64);
+    } else if (portrait) {
+      // A phone: the sheet and the fixed thumb bar share one screen, so a
+      // stroke and its undo are never a scroll apart.
+      const barH = sheetBar ? Math.max(64, sheetBar.offsetHeight) : 64;
+      capH = Math.max(320, window.innerHeight - barH - padY - 20);
+    } else if (wideDesk.matches) {
+      // A desk wide enough for the four-column bench: the sheet is as wide
+      // as the bench beneath it. That is Ryan's call over the one-screen
+      // rule (a full-width 3:2 sheet is taller than a laptop's screen; the
+      // bench is one scroll below, and Focus is there for the sheet alone).
       capH = Infinity;
     } else {
       // A narrow desk: room for the strip and the bench under the sheet, so
