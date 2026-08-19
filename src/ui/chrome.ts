@@ -1,7 +1,7 @@
 import { el } from "./dom";
 
 /**
- * The site chrome. This tool is EXP-041 in the Lab on ryankm.com and is
+ * The site chrome. This tool is EXP-040 in the Lab on ryankm.com and is
  * hosted off-site, so the bar is the only thing carrying the brand and the
  * only route home — same shape as every other experiment served from its own
  * subdomain.

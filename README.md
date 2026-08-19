@@ -10,7 +10,7 @@ Watercolor"](https://grail.cs.washington.edu/projects/watercolor/) (SIGGRAPH
 
 **Try it: [watercolor.ryankm.com](https://watercolor.ryankm.com/)** on a
 desktop browser with WebGL2 and a minute of playing with too much water.
-EXP-041 in [the Lab](https://ryankm.com/lab).
+EXP-040 in [the Lab](https://ryankm.com/lab).
 
 Vanilla TypeScript and Vite, zero runtime dependencies, no framework, no
 server, no analytics.
