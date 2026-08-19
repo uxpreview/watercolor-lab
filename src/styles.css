@@ -318,6 +318,10 @@ label,
     0 10px 34px rgba(24, 37, 40, 0.16);
   cursor: crosshair;
   touch-action: none;
+  /* A long press on the sheet is a stroke, never a callout or a selection. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 /* A quiet note that floats over the bottom of the desk when the sheet has
    something to say (lifting cured paint does nothing). Never blocks input. */
@@ -433,8 +437,9 @@ body.is-focus .easel {
   padding: 16px;
   align-items: start;
 }
-/* The action strip rides along into focus, above the drawer button. */
-body.is-focus .action-bar {
+/* The action strip rides along into focus, above the drawer button. On a
+   phone the strip lives inside the drawer, so this pull-out is desks only. */
+body.is-focus:not(.is-phone) .action-bar {
   position: fixed;
   left: 16px;
   bottom: 16px;
@@ -443,30 +448,22 @@ body.is-focus .action-bar {
   flex-wrap: nowrap;
   overflow-x: auto;
 }
-body.is-focus .action-bar .btn {
+body.is-focus:not(.is-phone) .action-bar .btn {
   box-shadow: 0 6px 24px rgba(24, 37, 40, 0.18);
   white-space: nowrap;
 }
-body.is-focus .action-bar .btn:not(.btn-primary):not(.is-active) {
+body.is-focus:not(.is-phone) .action-bar .btn:not(.btn-primary):not(.is-active) {
   background: var(--bg);
 }
 @media (max-width: 720px) {
   body.is-focus .easel {
     padding: 8px;
-  }
-  /* Stacked on a phone: the strip scrolls sideways above the focus buttons. */
-  body.is-focus .action-bar {
-    display: flex;
-    left: 8px;
-    right: 8px;
-    bottom: 64px;
+    /* A portrait sheet is width-bound on a phone: centred, not top-hung. */
+    align-items: center;
   }
   body.is-focus .focus-bar {
     right: 8px;
-    bottom: 12px;
-  }
-  body.is-focus .bench {
-    padding-bottom: 128px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
   }
 }
 body.is-focus .focus-bar {
@@ -483,17 +480,23 @@ body.is-focus .focus-bar .btn {
 body.is-focus .focus-bar .btn:not(.is-active) {
   background: var(--bg);
 }
-body.is-focus .bench {
+/* The bench as a bottom sheet: the drawer in focus on a desk, and the
+   standard state of a phone, where every touch painting app keeps the
+   canvas on screen and slides the tools up over it. */
+body.is-focus .bench,
+body.is-phone .bench {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 22;
-  max-height: min(70vh, 720px);
+  max-height: min(72vh, 720px);
   overflow: auto;
-  padding: 16px 16px 72px;
+  overscroll-behavior: contain;
+  padding: 10px 16px calc(28px + env(safe-area-inset-bottom));
   background: var(--bg);
   border-top: 1px solid var(--rule);
+  border-radius: 16px 16px 0 0;
   box-shadow: 0 -12px 40px rgba(24, 37, 40, 0.16);
   transform: translateY(100%);
   visibility: hidden;
@@ -501,15 +504,51 @@ body.is-focus .bench {
     transform var(--dur-mask) var(--ease-quint),
     visibility 0s linear var(--dur-mask);
 }
-body.is-focus.is-drawer-open .bench {
+/* In focus on a desk the Tools and Exit buttons float over the drawer's
+   foot, so the drawer keeps room under its content for them. On a phone
+   they hide while the drawer is up instead: the scrim and Escape close it. */
+body.is-focus:not(.is-phone) .bench {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+body.is-phone.is-drawer-open .focus-bar {
+  visibility: hidden;
+}
+/* The sheet's grab handle, so the drawer reads as a drawer. */
+body.is-focus .bench::before,
+body.is-phone .bench::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 0 auto 10px;
+}
+body.is-drawer-open .bench {
   transform: none;
   visibility: visible;
   transition:
     transform var(--dur-mask) var(--ease-quint),
     visibility 0s;
 }
+/* Tapping the painting closes the drawer, same as every bottom sheet. */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 21;
+  background: rgba(24, 37, 40, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-micro) var(--ease-quint);
+}
+body.is-drawer-open .drawer-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
 @media (prefers-reduced-motion: reduce) {
-  body.is-focus .bench {
+  body.is-focus .bench,
+  body.is-phone .bench,
+  .drawer-scrim {
     transition: none;
   }
 }
@@ -1159,6 +1198,142 @@ body.is-xray .sheet {
   color: var(--strong);
 }
 
+/* --- The thumb bar (phone) ---------------------------------------------- */
+/* Four controls fixed in the thumb zone: the paint in the well, the brush in
+   the hand, undo, and dry. The first two open the drawer to their box; the
+   last two act at once. Everything else waits in the drawer. */
+.sheet-bar {
+  display: none;
+}
+body.is-phone .sheet-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -8px 30px rgba(24, 37, 40, 0.12);
+}
+body.is-focus .sheet-bar {
+  display: none;
+}
+.bar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 6px 4px;
+  background: var(--surface);
+  border: 1.5px solid var(--edge);
+  border-radius: 10px;
+  color: var(--body-2);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+.bar-btn:active {
+  background: var(--tint);
+}
+.bar-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  line-height: 0;
+}
+.bar-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.bar-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--edge);
+}
+.bar-label {
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.bar-btn-primary:active {
+  background: var(--accent-hover);
+}
+
+/* --- Touch ergonomics ---------------------------------------------------- */
+/* Coarse pointers get coarse targets: 44px minimums per every platform's
+   guideline, and slider thumbs a fingertip can actually find. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+  .btn-small {
+    min-height: 40px;
+  }
+  .tool {
+    min-height: 58px;
+  }
+  .chip-mini {
+    width: 36px;
+    height: 36px;
+  }
+  details.box > summary {
+    min-height: 36px;
+  }
+  .card-close {
+    width: 36px;
+    height: 36px;
+  }
+  .slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 36px;
+    margin: 0;
+    background: transparent;
+  }
+  .slider input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+  }
+  .slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 1px 4px rgba(24, 37, 40, 0.3);
+  }
+  .slider input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+  }
+  .slider input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+}
+
 @media (max-width: 720px) {
   /* The desk runs edge to edge; the sheet gets every pixel the phone has. */
   .easel {
@@ -1171,11 +1346,22 @@ body.is-xray .sheet {
     border-right: 0;
     border-radius: 0;
   }
+  /* The masthead gives way on a phone: the record voice stays, the type
+     drops a size, and the sheet's top edge lands in the first screen. */
   .exp-head {
-    padding-top: 28px;
+    padding-top: 20px;
+  }
+  .t-h1 {
+    font-size: clamp(34px, 10vw, 44px);
+    margin-top: 14px;
+  }
+  .t-lede {
+    font-size: 16px;
+    margin-top: 12px;
   }
   .studio {
-    padding-top: 28px;
+    padding-top: 16px;
+    padding-bottom: 16px;
     gap: 14px;
   }
   .tool-row {
@@ -1187,5 +1373,9 @@ body.is-xray .sheet {
   .brush-preview-canvas {
     width: 84px;
     height: 84px;
+  }
+  /* Room under the notes for the fixed thumb bar. */
+  body.is-phone .app-footer {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom));
   }
 }
