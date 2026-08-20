@@ -108,11 +108,14 @@ In priority order:
    the sheet is as wide as the bench (Ryan's call, PR #8); on a narrow desk
    sheet + strip + bench fit one screen; Focus mode makes the sheet the
    window with the bench as a drawer; the Brushes box paints a dab of the
-   current brush and a fine pointer wears the brush's ring. On a phone the
-   bench is a fixed bottom-sheet drawer (`body.is-phone`), a thumb bar
-   carries well/brush/undo/dry, the sheet is capped so sheet + bar fit one
-   screen, and a two-finger tap is undo (see "The phone studio" in the
-   session log). If the bench grows taller on a desk, the sheet shrinks to
+   current brush and a fine pointer wears the brush's ring. On a phone
+   (`body.is-phone`) the sheet leads the page and the masthead is the
+   colophon below the studio (`main.ts`), a paint strip keeps the pans in
+   view under the sheet, the bench is ordinary collapsibles in the page
+   flow, a thumb bar carries well/brush/undo/dry (Paints and Brush scroll
+   to their box), Focus is desks only, and a two-finger tap is undo (see
+   "The phone studio" and "The sheet leads" in the session log). If the
+   bench grows taller on a desk, the sheet shrinks to
    keep the screen: mind that when adding controls. UI copy carries no em
    dashes (Ryan's call); keep it that way.
 

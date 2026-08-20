@@ -116,10 +116,11 @@ Because the physics is real, the technique vocabulary transfers:
   workable; Rain drops clean water on the painting and lets the physics
   work it over.
 
-On a phone the sheet turns portrait and takes the screen, the way every
-touch painting app gives the canvas the screen: a fixed bar in thumb reach
-carries the well, the brush, undo and dry, the rest of the paint box slides
-up as a drawer over the sheet, and a quick two-finger tap is undo. Pressure
+On a phone the sheet turns portrait and leads the page: the paper is the
+first thing on the screen, a strip of pans stays in view beneath it, the
+rest of the paint box is an ordinary scroll below, and a fixed bar in thumb
+reach carries the well, the brush, undo and dry. A quick two-finger tap is
+undo. Pressure
 from a stylus (Apple Pencil included) drives stroke width. Save sheet dries
 the painting and keeps it in the browser for the next visit.
 
