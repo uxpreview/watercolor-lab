@@ -360,3 +360,38 @@ The redesign is those three fixes and nothing else:
 Desktop is untouched except for the shared drawer CSS and the snapshot
 timing. The focus-mode action-strip pull-out is scoped to desks, since on a
 phone the strip lives in the drawer.
+
+## The sheet leads (phone pass 2)
+
+Ryan set the phone landing beside sudoaquarelle.com: there the canvas is the
+first thing on the screen, a row of colors is already in view beneath it, and
+the tools are one ordinary scroll below. Ours opened on a masthead, kept every
+color behind a drawer, and floated a Focus button over the sheet. Four moves,
+all scoped to the phone shell:
+
+- **The sheet leads the page.** `main.ts` mounts the studio first on a phone
+  and the masthead (site bar, record line, claim, lede) becomes the colophon
+  between the studio and the bench notes; a desk keeps the site's order,
+  where the record voice above the fold is the point of the Lab shell.
+  `layoutSheet()` now reserves the paint strip's height too, so sheet, strip
+  and thumb bar share the first screen.
+- **A paint strip.** The first thing under the sheet: the current charge by
+  name, Rinse, and all 36 pans in one thumb-scrollable row, the same KM
+  physics chips as the palette. A tap dips. When the charge changes anywhere
+  else (palette, recents, restore) the ringed chip is brought into view, but
+  only when it is actually off-screen, so the row never jumps under a
+  finger. Mixing, recents and the pigment cards stay in the Pigments box.
+- **The bench returns to the page.** The phone drawer and its scrim are
+  gone: the boxes are ordinary collapsibles under the strip, Brushes open
+  and first (the strip already covers color), Pigments, Paper, X-ray and
+  Sheet actions closed. The thumb bar keeps its four controls; Paints and
+  Brush scroll to their box and open it instead of raising a sheet. The
+  drawer survives as focus mode's furniture on a desk.
+- **Focus is a desk feature.** On a phone the sheet already leads the page
+  at full width, so a focus state would be a second copy of the screen the
+  phone starts on. The button, the F key handler and the bench-note sentence
+  about Focus are desks only now.
+
+Also fixed in passing: in desk focus the drawer's grab handle (a `::before`)
+sat in the bench grid's first cell and shifted every box over by a column; it
+spans the grid now.

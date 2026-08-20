@@ -5,7 +5,7 @@
  */
 
 import { beginStroke, brushRadius, strokeTo, tapStamp, TOOLS, type StrokeState, type ToolId } from "../paint/brush";
-import { DEFAULT_PIGMENT_ID, handlingNote, PIGMENT_BY_ID, type Pigment } from "../paint/pigments";
+import { DEFAULT_PIGMENT_ID, handlingNote, PIGMENT_BY_ID, PIGMENTS, type Pigment } from "../paint/pigments";
 import { mixWell, wellName, type WellEntry } from "../paint/mix";
 import { PAPERS, type PaperKind } from "../engine/paper";
 import { composite, layerRT, linearToSrgbByte, PAPER_REFLECTANCE, type Vec3 } from "../paint/km";
@@ -94,6 +94,10 @@ function slider(label: string, initial: number, onInput: (v: number) => void): {
 export function mountStudio(host: HTMLElement): AppApi {
   const dims = simDims();
   const portrait = dims.h > dims.w;
+  // The phone shell: sheet first, a paint strip in view beneath it, the bench
+  // in the page flow, a fixed thumb bar. Decided once, at mount, like the
+  // simulation grid's orientation.
+  const phone = window.matchMedia("(max-width: 720px)").matches;
   const canvas = el("canvas", {
     class: `sheet${portrait ? " is-portrait" : ""}`,
     "aria-label": "Watercolor paper. Draw here to paint.",
@@ -314,6 +318,9 @@ export function mountStudio(host: HTMLElement): AppApi {
   const wellMeta = el("span", { class: "pigment-meta" });
   const recentRow = el("div", { class: "recent-row", "aria-label": "Recent pigments" });
   let recents: Pigment[] = [];
+  // The phone's paint strip mirrors the well; assigned where the strip is
+  // built, called wherever the well changes, a no-op on a desk.
+  let syncStrip: () => void = () => {};
 
   const renderWell = () => {
     if (brushPigment) {
@@ -331,6 +338,7 @@ export function mountStudio(host: HTMLElement): AppApi {
       wellName_.textContent = "Rinsed";
       wellMeta.textContent = "clean water. Dip a pigment";
     }
+    syncStrip();
     previewDirty = true;
   };
 
@@ -395,6 +403,58 @@ export function mountStudio(host: HTMLElement): AppApi {
 
   const palette = createPalette(DEFAULT_PIGMENT_ID);
   palette.onChange(dip);
+
+  // ---- the paint strip (phone) -------------------------------------------
+  // Color in view without opening anything: the first thing under the sheet
+  // is the current charge by name, Rinse, and all 36 pans in one
+  // thumb-scrollable row, the same physics chips as the palette. A tap dips;
+  // mixing, recents and the pigment cards stay in the Pigments box below.
+  let paintStrip: HTMLElement | null = null;
+  if (phone) {
+    const stripChips = new Map<string, HTMLButtonElement>();
+    const stripRow = el("div", { class: "strip-row", role: "listbox", "aria-label": "Pigments, quick row" });
+    for (const p of PIGMENTS) {
+      const mini = el("canvas", { width: 40, height: 40, class: "chip-swatch" });
+      paintChip(mini, p);
+      const chipBtn = el(
+        "button",
+        { class: "chip strip-chip", type: "button", role: "option", title: p.name, "aria-label": p.name, "aria-selected": "false", onclick: () => dip(p) },
+        mini
+      );
+      stripChips.set(p.id, chipBtn);
+      stripRow.append(chipBtn);
+    }
+    const stripName = el("span", { class: "strip-name" });
+    syncStrip = () => {
+      stripName.textContent = brushPigment ? wellName(well) : "Rinsed, clean water";
+      for (const [id, b] of stripChips) b.setAttribute("aria-selected", String(well.some((e) => e.pigment.id === id)));
+      // If the charge changed from somewhere other than the strip (the
+      // palette, recents, restore) the ringed chip may be off-screen: bring
+      // it in. Only the row scrolls, and only when the chip is out of view.
+      const sel = well[0] && stripChips.get(well[0].pigment.id);
+      if (sel) {
+        const rowRect = stripRow.getBoundingClientRect();
+        if (rowRect.width > 0) {
+          const chipRect = sel.getBoundingClientRect();
+          if (chipRect.right < rowRect.left + 8 || chipRect.left > rowRect.right - 8) {
+            stripRow.scrollLeft += chipRect.left - rowRect.left - (rowRect.width - chipRect.width) / 2;
+          }
+        }
+      }
+    };
+    paintStrip = el(
+      "div",
+      { class: "paint-strip" },
+      el(
+        "div",
+        { class: "strip-head" },
+        stripName,
+        el("button", { class: "btn btn-small", type: "button", onclick: rinse }, "Rinse")
+      ),
+      stripRow
+    );
+  }
+
   renderWell();
 
   // ---- the brush preview ---------------------------------------------------
@@ -503,9 +563,9 @@ export function mountStudio(host: HTMLElement): AppApi {
   canvas.addEventListener("pointerleave", () => ring.classList.remove("is-visible"));
 
   // ---- focus ------------------------------------------------------------------
-  // The sheet takes the whole window and the bench becomes a drawer. For a
-  // desk that wants the biggest sheet it can get, and for a phone, where the
-  // page's own chrome is most of the screen.
+  // The sheet takes the whole window and the bench becomes a drawer. Desks
+  // only: on a phone the sheet already leads the page at full width, so a
+  // focus state would be a second copy of the screen the phone starts on.
   let focus = false;
   let drawerOpen = false;
   // The button lives on the desk itself, top right, where a fullscreen
@@ -549,17 +609,19 @@ export function mountStudio(host: HTMLElement): AppApi {
     if (on) exitBtn.focus();
     else focusBtn.focus();
   };
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      if (drawerOpen) setDrawer(false);
-      else if (focus) setFocus(false);
-    }
-    const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
-    if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.altKey && !typing) {
-      e.preventDefault();
-      setFocus(!focus);
-    }
-  });
+  if (!phone) {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (drawerOpen) setDrawer(false);
+        else if (focus) setFocus(false);
+      }
+      const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
+      if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.altKey && !typing) {
+        e.preventDefault();
+        setFocus(!focus);
+      }
+    });
+  }
 
   // ---- toolbox -----------------------------------------------------------
   // The thumb bar's brush button wears the current tool's icon and name, so
@@ -769,8 +831,8 @@ export function mountStudio(host: HTMLElement): AppApi {
 
   // A box is a section on a desk and a collapsible on a phone, where the
   // bench is a column under the sheet and every closed box is one less
-  // screen to scroll past. Pigments and Brushes start open; the rest closed.
-  const phone = window.matchMedia("(max-width: 720px)").matches;
+  // screen to scroll past. Brushes starts open; the rest closed, since the
+  // paint strip above the bench already keeps color in reach.
   const box = (title: string, open: boolean, cls: string, ...children: (HTMLElement | null)[]): HTMLElement => {
     if (!phone) return el("section", { class: `box ${cls}` }, el("h2", { class: "box-title" }, title), ...children);
     return el(
@@ -782,7 +844,10 @@ export function mountStudio(host: HTMLElement): AppApi {
   };
   const subRow = (label: string, row: HTMLElement) => el("div", { class: "sub-row" }, el("h3", { class: "sub-title" }, label), row);
 
-  const pigmentsBox = box("Pigments", true, "box-pigments", wellRow, recentRow, palette.root);
+  // On a phone the paint strip above the bench holds the pans, so the
+  // Pigments box (mixing, recents, the cards) starts closed and Brushes,
+  // the box the strip cannot stand in for, leads the column.
+  const pigmentsBox = box("Pigments", false, "box-pigments", wellRow, recentRow, palette.root);
   const brushesBox = box(
     "Brushes",
     true,
@@ -795,30 +860,29 @@ export function mountStudio(host: HTMLElement): AppApi {
       el("div", { class: "brush-preview" }, previewCanvas, previewLine)
     )
   );
+  const paperBox = box("Paper", false, "box-paper", paperRow, subRow("Alive", el("div", { class: "paper-row" }, foreverWetBtn, rainBtn)));
+  const xrayBox = box("X-ray", false, "box-xray", xrayRow, xrayWhat, xrayRamp);
   const bench = el(
     "aside",
     { class: "bench" },
-    pigmentsBox,
-    brushesBox,
-    box("Paper", false, "box-paper", paperRow, subRow("Alive", el("div", { class: "paper-row" }, foreverWetBtn, rainBtn))),
-    box("X-ray", false, "box-xray", xrayRow, xrayWhat, xrayRamp),
-    // On a phone the strip lives in the drawer with everything else; the two
-    // actions a painting needs mid-stroke (undo, dry) ride the thumb bar.
-    phone ? box("Sheet actions", false, "box-actions", actions) : null
+    ...(phone
+      ? // The two actions a painting needs mid-stroke (undo, dry) ride the
+        // thumb bar; the rest wait in Sheet actions.
+        [brushesBox, pigmentsBox, paperBox, xrayBox, box("Sheet actions", false, "box-actions", actions)]
+      : [pigmentsBox, brushesBox, paperBox, xrayBox])
   );
 
-  const easel = el("div", { class: "easel" }, canvas, ring, hint, focusBtn);
+  const easel = el("div", { class: "easel" }, canvas, ring, hint, phone ? null : focusBtn);
 
   // ---- the thumb bar (phone) ------------------------------------------------
-  // The pattern every touch painting app converges on: the canvas gets the
-  // screen, the four most-reached controls sit fixed in the thumb zone, and
-  // everything else is a bottom sheet over the painting, not a page below it.
+  // The canvas gets the screen and the four most-reached controls sit fixed
+  // in the thumb zone. Paints and Brush go to their box in the page below,
+  // opened if it was closed: the bench is ordinary page flow, one scroll
+  // away, not a drawer over the painting.
   const openBox = (target: HTMLElement) => {
-    setDrawer(true);
     if (target instanceof HTMLDetailsElement) target.open = true;
-    requestAnimationFrame(() => {
-      bench.scrollTop = Math.max(0, target.offsetTop - 12);
-    });
+    const top = target.getBoundingClientRect().top + window.scrollY - 8;
+    window.scrollTo({ top, behavior: "smooth" });
   };
   const barButton = (label: string, cls: string, onclick: () => void, ...lead: HTMLElement[]) =>
     el("button", { class: `bar-btn ${cls}`, type: "button", onclick }, ...lead, el("span", { class: "bar-label" }, label));
@@ -846,9 +910,11 @@ export function mountStudio(host: HTMLElement): AppApi {
 
   if (phone) {
     document.body.classList.add("is-phone");
-    host.append(el("div", { class: "studio container" }, easel, bench, focusBar));
-    const scrim = el("div", { class: "drawer-scrim", "aria-hidden": "true", onclick: () => setDrawer(false) });
-    document.body.append(scrim, sheetBar!);
+    host.append(el("div", { class: "studio container" }, easel, paintStrip, bench));
+    document.body.append(sheetBar!);
+    // The strip is only now in the DOM: run the sync once more so the
+    // starting pigment's ringed chip lands in view.
+    requestAnimationFrame(() => syncStrip());
   } else {
     host.append(el("div", { class: "studio container" }, easel, actions, bench, focusBar));
   }
@@ -885,10 +951,12 @@ export function mountStudio(host: HTMLElement): AppApi {
       // On a phone only the focus buttons do; the strip lives in the drawer.
       capH = window.innerHeight - padY - (portrait ? 76 : 64);
     } else if (portrait) {
-      // A phone: the sheet and the fixed thumb bar share one screen, so a
-      // stroke and its undo are never a scroll apart.
+      // A phone: the sheet leads the page, and the first screen holds the
+      // sheet, the paint strip beneath it, and the fixed thumb bar, so a
+      // stroke, a color and undo are never a scroll apart.
       const barH = sheetBar ? Math.max(64, sheetBar.offsetHeight) : 64;
-      capH = Math.max(320, window.innerHeight - barH - padY - 20);
+      const stripH = paintStrip ? paintStrip.offsetHeight + 14 : 0;
+      capH = Math.max(320, window.innerHeight - barH - stripH - padY - 16);
     } else if (wideDesk.matches) {
       // A desk wide enough for the four-column bench: the sheet is as wide
       // as the bench beneath it. That is Ryan's call over the one-screen

@@ -480,11 +480,10 @@ body.is-focus .focus-bar .btn {
 body.is-focus .focus-bar .btn:not(.is-active) {
   background: var(--bg);
 }
-/* The bench as a bottom sheet: the drawer in focus on a desk, and the
-   standard state of a phone, where every touch painting app keeps the
-   canvas on screen and slides the tools up over it. */
-body.is-focus .bench,
-body.is-phone .bench {
+/* The bench as a bottom sheet: the drawer in focus mode on a desk. On a
+   phone the bench stays in the page flow below the sheet, one scroll away,
+   the way the reference tools keep everything reachable under the canvas. */
+body.is-focus .bench {
   position: fixed;
   left: 0;
   right: 0;
@@ -493,7 +492,9 @@ body.is-phone .bench {
   max-height: min(72vh, 720px);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 10px 16px calc(28px + env(safe-area-inset-bottom));
+  /* The Tools and Exit buttons float over the drawer's foot, so the drawer
+     keeps room under its content for them. */
+  padding: 10px 16px calc(88px + env(safe-area-inset-bottom));
   background: var(--bg);
   border-top: 1px solid var(--rule);
   border-radius: 16px 16px 0 0;
@@ -504,25 +505,17 @@ body.is-phone .bench {
     transform var(--dur-mask) var(--ease-quint),
     visibility 0s linear var(--dur-mask);
 }
-/* In focus on a desk the Tools and Exit buttons float over the drawer's
-   foot, so the drawer keeps room under its content for them. On a phone
-   they hide while the drawer is up instead: the scrim and Escape close it. */
-body.is-focus:not(.is-phone) .bench {
-  padding-bottom: calc(88px + env(safe-area-inset-bottom));
-}
-body.is-phone.is-drawer-open .focus-bar {
-  visibility: hidden;
-}
-/* The sheet's grab handle, so the drawer reads as a drawer. */
-body.is-focus .bench::before,
-body.is-phone .bench::before {
+/* The sheet's grab handle, so the drawer reads as a drawer. It spans the
+   bench's grid, not its first cell, or every box shifts over by a column. */
+body.is-focus .bench::before {
   content: "";
   display: block;
+  grid-column: 1 / -1;
   width: 44px;
   height: 4px;
   border-radius: 2px;
   background: var(--line);
-  margin: 0 auto 10px;
+  margin: 0 auto -6px;
 }
 body.is-drawer-open .bench {
   transform: none;
@@ -531,24 +524,8 @@ body.is-drawer-open .bench {
     transform var(--dur-mask) var(--ease-quint),
     visibility 0s;
 }
-/* Tapping the painting closes the drawer, same as every bottom sheet. */
-.drawer-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 21;
-  background: rgba(24, 37, 40, 0.32);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-micro) var(--ease-quint);
-}
-body.is-drawer-open .drawer-scrim {
-  opacity: 1;
-  pointer-events: auto;
-}
 @media (prefers-reduced-motion: reduce) {
-  body.is-focus .bench,
-  body.is-phone .bench,
-  .drawer-scrim {
+  body.is-focus .bench {
     transition: none;
   }
 }
@@ -1198,6 +1175,51 @@ body.is-xray .sheet {
   color: var(--strong);
 }
 
+/* --- The paint strip (phone) --------------------------------------------- */
+/* Color in view without opening anything: the current charge by name, Rinse,
+   and every pan in one thumb-scrollable row directly under the sheet. The
+   half-cut chip at the right edge is the scroll affordance. */
+.paint-strip {
+  display: none;
+}
+body.is-phone .paint-strip {
+  display: block;
+  min-width: 0;
+}
+.strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.strip-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--strong);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.strip-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 3px 3px 8px;
+  margin: 0 -3px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.strip-row::-webkit-scrollbar {
+  display: none;
+}
+.strip-chip {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
 /* --- The thumb bar (phone) ---------------------------------------------- */
 /* Four controls fixed in the thumb zone: the paint in the well, the brush in
    the hand, undo, and dry. The first two open the drawer to their box; the
@@ -1346,8 +1368,15 @@ body.is-focus .sheet-bar {
     border-right: 0;
     border-radius: 0;
   }
-  /* The masthead gives way on a phone: the record voice stays, the type
-     drops a size, and the sheet's top edge lands in the first screen. */
+  /* The masthead moved below the studio on a phone (main.ts): the sheet
+     leads the page and the head reads as the colophon, so the type drops a
+     size and the site bar picks up a top rule to open the section. */
+  body.is-phone .app-header {
+    margin-top: 12px;
+  }
+  body.is-phone .site-bar {
+    border-top: 1px solid var(--rule);
+  }
   .exp-head {
     padding-top: 20px;
   }
@@ -1360,8 +1389,8 @@ body.is-focus .sheet-bar {
     margin-top: 12px;
   }
   .studio {
-    padding-top: 16px;
-    padding-bottom: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
     gap: 14px;
   }
   .tool-row {

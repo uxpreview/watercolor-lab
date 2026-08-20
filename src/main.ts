@@ -58,11 +58,16 @@ function experimentHead(): HTMLElement {
 
 // Bench notes, in the site's ledger voice: a label rail on the left and the
 // note beside it. What a painter needs to know that the studio cannot say.
+// Focus is a desk feature (on a phone the sheet already leads the page at
+// full width), so its sentence only appears where the button does.
 const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
   {
     k: "Wet the sheet first",
     v: [
-      "Water before paint gives soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a damp wash and let it dry. Backlight shows what the light survives. Focus (the button on the desk, or F) gives you the sheet alone, as big as the window.",
+      "Water before paint gives soft blooms; paint onto dry paper for hard edges. Sprinkle salt into a damp wash and let it dry. Backlight shows what the light survives." +
+        (window.matchMedia("(max-width: 720px)").matches
+          ? ""
+          : " Focus (the button on the desk, or F) gives you the sheet alone, as big as the window."),
     ],
   },
   {
@@ -123,7 +128,13 @@ function footer(): HTMLElement {
 
 const root = document.getElementById("app")!;
 
-root.append(experimentHead());
+// On a phone the sheet leads: the first thing on the page is the paper, the
+// way every phone painting tool opens, and the masthead becomes the colophon
+// between the studio and the bench notes. A desk keeps the site's order,
+// where the record voice above the fold is the point of the Lab shell.
+const phoneShell = window.matchMedia("(max-width: 720px)").matches;
+
+if (!phoneShell) root.append(experimentHead());
 
 try {
   window.__wash = mountStudio(root);
@@ -138,4 +149,5 @@ try {
   );
 }
 
+if (phoneShell) root.append(experimentHead());
 root.append(footer());
