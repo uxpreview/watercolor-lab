@@ -298,9 +298,9 @@ label,
    sim pixel is never stretched. Paper on a desk casts a shadow; nothing else
    on the site does, and nothing else here does either.
 
-   Sizing (layoutSheet in app.ts): on a wide desk and on a phone, as wide as
-   the bench beneath it; on a narrow desk, the biggest 3:2 that keeps the
-   strip and the bench in view beneath it. */
+   Sizing (layoutSheet in app.ts): on a phone, as wide as the bench beneath
+   it; on a desk, the biggest 3:2 that keeps the action strip and the bench
+   in view beneath it. */
 .sheet {
   /* Width and height are set by layoutSheet() in app.ts, see the note there;
      the aspect ratio here is the fallback before the first layout. */
