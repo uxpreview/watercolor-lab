@@ -21,21 +21,6 @@ declare global {
 // tokens, same measure as the other off-site experiments (see Attention Lab).
 
 function experimentHead(): HTMLElement {
-  const meta = el(
-    "div",
-    { class: "exp-meta" },
-    el("span", { class: "label label-strong" }, "EXP-040"),
-    el("span", { class: "label" }, "tool"),
-    el(
-      "span",
-      { class: "label label-strong exp-state" },
-      el("span", { class: "status-dot", "aria-hidden": "true" }),
-      "Live"
-    ),
-    el("span", { class: "exp-rule", "aria-hidden": "true" }),
-    el("span", { class: "label exp-stack" }, "Curtis et al. 1997 · Kubelka-Munk · WebGL2 · Client-side only")
-  );
-
   return el(
     "header",
     { class: "app-header" },
@@ -43,16 +28,37 @@ function experimentHead(): HTMLElement {
     el(
       "div",
       { class: "container exp-head" },
-      meta,
-      el("h1", { class: "t-h1" }, "Watercolor Lab", el("span", { class: "dot" }, ".")),
+      el("h1", { class: "t-h1" }, "Watercolor Lab"),
       // Two sentences. The physics gets its say in the bench notes below the
       // sheet, not above it.
       el(
         "p",
         { class: "t-lede" },
         "Real watercolor, simulated: water flows across the sheet, pigment rides it and settles, and the paper decides the rest. Thirty-six real pigments, wet-on-wet blooms, granulation, backruns and salt, all live on your GPU."
-      )
+      ),
+      recordFacts("exp-facts-head")
     )
+  );
+}
+
+/**
+ * The record: what kind of thing this is, its state, and what it is made with.
+ * On the site this is the facts table in the right rail of every /lab/<slug>
+ * page; the experiment number stays in the site's data and off the page. It
+ * is drawn twice here and shown once: beside the title from a laptop up
+ * (`exp-facts-head`), and above the notes on anything narrower
+ * (`exp-facts-foot`). The hidden copy is `display: none`, so a screen reader
+ * meets one.
+ */
+function recordFacts(placement: string): HTMLElement {
+  const row = (k: string, ...v: Array<string | HTMLElement>): HTMLElement =>
+    el("div", {}, el("dt", {}, k), el("dd", {}, ...v));
+  return el(
+    "dl",
+    { class: `facts facts-end exp-facts ${placement}` },
+    row("Kind", "Tool"),
+    row("Status", el("span", { class: "exp-state" }, el("span", { class: "status-dot", "aria-hidden": "true" }), "Live")),
+    row("Made with", "WebGL2 · Kubelka-Munk optics · 36 real pigments")
   );
 }
 
@@ -106,21 +112,34 @@ const BENCH_NOTES: { k: string; v: (string | HTMLElement)[] }[] = [
 
 function footer(): HTMLElement {
   const notes = el("dl", { class: "notes" });
-  for (const note of BENCH_NOTES) {
-    notes.append(el("div", { class: "note-row" }, el("dt", { class: "label" }, note.k), el("dd", {}, ...note.v)));
-  }
+  BENCH_NOTES.forEach((note, i) => {
+    notes.append(
+      el(
+        "div",
+        { class: "note-row" },
+        el(
+          "dt",
+          {},
+          el("span", { class: "num", "aria-hidden": "true" }, String(i + 1).padStart(2, "0")),
+          el("span", { class: "t-card" }, note.k)
+        ),
+        el("dd", {}, ...note.v)
+      )
+    );
+  });
   return el(
     "footer",
     { class: "app-footer" },
     el(
       "div",
       { class: "container" },
-      el("h2", { class: "t-display notes-title" }, "Bench notes"),
+      recordFacts("exp-facts-foot"),
+      el("div", { class: "shelf" }, el("h2", { class: "eyebrow" }, "Notes")),
       notes,
       el(
         "p",
         { class: "footer-credit" },
-        el("a", { class: "arrow-link", href: LAB_URL }, "EXP-040 in the Lab at ryankm.com", el("span", { "aria-hidden": "true" }, "→"))
+        el("a", { class: "btn btn-small", href: LAB_URL }, "More in the Lab at ryankm.com", el("span", { "aria-hidden": "true" }, "→"))
       )
     )
   );

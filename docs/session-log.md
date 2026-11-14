@@ -395,3 +395,29 @@ all scoped to the phone shell:
 Also fixed in passing: in desk focus the drawer's grab handle (a `::before`)
 sat in the bench grid's first cell and shifted every box over by a column; it
 spans the grid now.
+
+## The site's new look (2026-11-14)
+
+The site was redesigned in October 2026 ("Paper Lab": off-white paper,
+near-black ink, warm grays, three typefaces) and this tool still wore the
+system before it. `src/tokens.css` is recopied whole from the site, and the
+fonts are now Hanken Grotesk, Source Serif 4 and JetBrains Mono, self-hosted in
+`public/fonts/`.
+
+The page shell follows the site's `/lab/<slug>` page, same as Attention Lab:
+the wordmark in tracked capitals with the way back as a header pill, the title
+at semibold, the lede in the serif, the record as a facts table (beside the
+title on a laptop, above the notes on a phone), and "Notes" as a shelf with
+numbered rows. The experiment number is off the page, as on the site. The desk
+and the bench boxes are borderless surface plates; buttons are the site's pills
+in the grotesk (the mono is a real monospace now, kept to box titles and the
+key hint). The selected pan is ringed in ink, not the old warm accent, so the
+only color on the page is paint.
+
+Left alone: everything on the sheet, the pigment swatches, and the X-ray ramp
+(cream to teal). The ramp is drawn by the shader and its legend matches it;
+teal reads as water, so it stays the drawing's own color rather than the old
+brand's. `scripts/make-og.mjs` builds the share card in the new system.
+
+Checked with `npm run build`, `npm test` (492 checks), and screenshots of the
+studio, focus mode and the phone studio.
