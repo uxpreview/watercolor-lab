@@ -1,13 +1,20 @@
 /* Watercolor Lab, wearing the ryankm.com design system.
  *
- * This tool is EXP-040 in the Lab and is hosted on its own subdomain, so the
+ * This tool is part of the Lab and is hosted on its own subdomain, so the
  * page does the work the site's /lab/<slug> route normally does: the trail
- * back up, the record voice (number, kind, state, then the stack), the claim
- * in display type, the lede, the experiment, then bench notes. Same order,
- * same tokens, same measure as Attention Lab (EXP-038).
+ * back up, the title, the lede, the record as a facts table, the experiment,
+ * then notes. Same order, same tokens, same measure as Attention Lab.
  *
- * Colors, radii, easings and the measure come from src/tokens.css, a vendored
- * copy of the site's tokens that is never edited on this side.
+ * Colors, radii, easings, the measure and the three typefaces come from
+ * src/tokens.css, a vendored copy of the site's tokens that is never edited on
+ * this side. The system is "Paper Lab" (the site's October 2026 redesign):
+ * warm off-white paper, near-black ink, warm grays. Ink is the accent, the
+ * grotesk carries UI and headings, the serif carries the lede and the notes,
+ * and the mono is the small uppercase label voice only, never a button.
+ *
+ * The page's chrome is deliberately colorless, because here the color is the
+ * paint: thirty-six pigments on a white sheet, and nothing around them that
+ * competes.
  *
  * One deliberate departure from the other experiments: the sheet of paper is
  * the whole point of this page, so the studio gives it the biggest, calmest
@@ -18,9 +25,11 @@
 
 @import "./tokens.css";
 
-/* The shared container edge, same derivation as the other Lab experiments:
-   45% of --strong into --line reaches the 3:1 a component boundary needs on
-   this cream. */
+/* The control edge, same derivation as the other Lab experiments: 45% of
+   --strong into --line lands at #898882, which reaches the 3:1 a component
+   boundary needs on the paper and on --surface. Controls wear it (pans, tool
+   buttons, sliders). Containers do not: a box on the bench is a --surface
+   plate with no stroke, the way the site draws every card. */
 :root {
   --edge: color-mix(in srgb, var(--strong) 45%, var(--line));
 }
@@ -66,161 +75,263 @@ label,
   margin: 0 auto;
   width: 100%;
   max-width: var(--maxw);
-  padding: 0 24px;
+  padding: 0 20px;
 }
 @media (min-width: 768px) {
   .container {
-    padding: 0 40px;
+    padding: 0 32px;
   }
 }
 
 /* --- Site bar ----------------------------------------------------------- */
+/* A bar, not a breadcrumb. A breadcrumb claims same-origin hierarchy, and
+   both links here leave the origin. The wordmark carries the brand where a
+   visitor expects to find it. The bar is the site's header: 72px, paper, no
+   rule under it (whitespace does that job on the site). */
 .site-bar {
-  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
 }
 .bar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 18px;
-  padding-bottom: 18px;
+  height: var(--header-h);
 }
+/* The site's wordmark: the full name in tracked bold capitals, 17px on a
+   phone and 19px from a tablet. The markup says "Ryan McCarty"; the capitals
+   are presentation. */
 .wordmark {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.02em;
+  font-size: 17px;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--strong);
   text-decoration: none;
   white-space: nowrap;
 }
-.wordmark .dot {
-  display: inline-block;
-  transform-origin: 50%;
-  animation: dot-pop 0.36s var(--ease-expo) both;
-}
-@keyframes dot-pop {
-  0% {
-    transform: scale(0);
-  }
-  60% {
-    transform: scale(1.08);
-  }
-  to {
-    transform: scale(1);
+@media (min-width: 768px) {
+  .wordmark {
+    font-size: 19px;
   }
 }
-/* The trail back, in the label voice: chase underline, arrow nudges. */
+/* The site header's pill: 28px tall, 13px label, surface fill and a hairline. */
 .bar-back {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
+  gap: 6px;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--strong);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1;
   text-decoration: none;
   white-space: nowrap;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 }
-.bar-back::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -3px;
-  height: 1.5px;
-  width: 100%;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right center;
-  transition: transform var(--dur-struct) var(--ease-expo);
+.bar-back:hover {
+  background: var(--surface-2);
+  border-color: var(--line-2);
 }
-.bar-back span {
-  transition: transform 0.2s ease;
-}
-@media (hover: hover) and (pointer: fine) {
-  .bar-back:hover::after {
-    transform: scaleX(1);
-    transform-origin: left center;
+/* On touch the hit area grows to a thumb's height without moving anything. */
+@media (pointer: coarse) {
+  .bar-back {
+    position: relative;
   }
-  .bar-back:hover span {
-    transform: translateY(-2px);
+  .bar-back::after {
+    content: "";
+    position: absolute;
+    inset: -8px -3px;
   }
 }
 
 /* --- Type ------------------------------------------------------------- */
-/* The label voice: structural eyebrows only — the record line, section
-   headings, the trail back. Controls speak sentence case at 13px. */
-.label,
-.eyebrow {
+/* Two small voices, kept apart the way the site keeps them.
+   .label   the mono register: kickers, table heads, counts. 11.5px JetBrains
+            Mono, uppercase, lightly tracked. Never below 11px.
+   .eyebrow the section label: 13px grotesk, semibold, ink, sentence case,
+            inside a .shelf. */
+.label {
   font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-weight: 400;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .label-strong {
   color: var(--strong);
 }
-/* The display size is capped lower than the site's hero, on purpose: this
-   page is a tool, and the sheet has to be reachable without scrolling. */
-.t-h1 {
+.eyebrow {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(44px, 6.6vw, 78px);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.005em;
+  text-transform: none;
+  color: var(--strong);
+  margin: 0;
+}
+/* Section label row: hairline above and below, label left. */
+.shelf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+/* Mono index: 01, 02. */
+.num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+/* Card and list-row title. */
+.t-card {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--strong);
   text-wrap: balance;
-  margin: 24px 0 0;
+}
+
+/* The site's .t-h1: the grotesk at semibold, confident, not shouting. This is
+   a tool, so the title stays at the site's laptop size and does not grow past
+   it: at the old 78px the headline plus its lede pushed every control below a
+   900px fold, and the first screen was all masthead and no instrument. */
+.t-h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(38px, 4.6vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--strong);
+  text-wrap: balance;
+  margin: 0;
   max-width: 16ch;
 }
 .t-display {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(30px, 3.8vw, 54px);
-  line-height: 1.04;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--strong);
   text-wrap: balance;
   margin: 0;
-  max-width: 18ch;
+  max-width: 22ch;
 }
+/* The lede is the serif: the quiet half of the page's opening. */
 .t-lede {
-  font-size: clamp(18px, 1.6vw, 21px);
-  line-height: 1.55;
+  font-family: var(--font-serif);
+  font-size: clamp(19px, 1.6vw, 22px);
+  line-height: 1.5;
   color: var(--body-2);
   text-wrap: pretty;
-  max-width: 58ch;
+  max-width: 60ch;
   margin: 24px 0 0;
-}
-/* The wordmark dot: the site's one vermillion accent in display type. */
-.dot {
-  color: var(--accent-warm);
 }
 
 /* --- Experiment head ---------------------------------------------------- */
+/* Head matter, the way a /lab/<slug> page sets it: the title and the lede on
+   the left and, from a laptop up, the record as a facts table in a right rail
+   whose last row sits on the lede's baseline. */
 .exp-head {
-  padding-top: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 64px;
+  padding-top: 28px;
+}
+.exp-head > .t-h1,
+.exp-head > .t-lede {
+  grid-column: 1;
 }
 @media (min-width: 768px) {
   .exp-head {
-    padding-top: 56px;
+    padding-top: 40px;
   }
 }
-/* Record voice: number, kind, state, then a rule that runs out to the stack. */
-.exp-meta {
+@media (min-width: 1024px) {
+  .exp-head {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    align-items: end;
+  }
+  .exp-head > .exp-facts-head {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-bottom: 6px;
+  }
+}
+
+/* Label / value fact rows on hairlines: the site's .facts, with .facts-end
+   pushing the value to the right edge for a narrow rail. */
+.facts {
+  margin: 0;
+}
+.facts > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 16px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.facts > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.facts dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--strong);
+}
+.facts-end > div {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 20px;
+  justify-content: space-between;
+}
+.facts-end dt {
+  flex: none;
+}
+.facts-end dd {
+  text-align: right;
+}
+/* The record is drawn twice and shown once: in the head's right rail from a
+   laptop up, under the tool below that, so a phone reaches the tool first. */
+.exp-facts-head {
+  display: none;
+}
+.exp-facts-foot {
+  margin-bottom: 40px;
+}
+@media (min-width: 1024px) {
+  .exp-facts-head {
+    display: block;
+  }
+  .exp-facts-foot {
+    display: none;
+  }
 }
 .exp-state {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 }
@@ -228,35 +339,21 @@ label,
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--strong);
 }
-.exp-rule {
-  flex: 1;
-  min-width: 40px;
-  height: 1px;
-  background: var(--line);
-}
-.exp-stack {
-  display: none;
-}
-@media (min-width: 640px) {
-  .exp-stack {
-    display: block;
-  }
-}
+
 /* The masthead gives way on a laptop screen: between 640 and 950px tall the
    type and the head padding stop scaling with width, so the sheet's top edge
    stays in the first screen. Same rule as the other experiments. */
 @media (min-height: 640px) and (max-height: 950px) {
   .t-h1 {
-    font-size: clamp(40px, 4.4vw, 60px);
-    margin-top: 18px;
+    font-size: clamp(38px, 4vw, 56px);
   }
   .t-lede {
     margin-top: 18px;
   }
   .exp-head {
-    padding-top: 32px;
+    padding-top: 24px;
   }
   .studio {
     padding-top: 32px;
@@ -287,7 +384,7 @@ label,
   max-width: 100%;
   justify-self: center;
   background: var(--surface);
-  border: 1px solid var(--edge);
+  border: 1px solid transparent;
   border-radius: var(--r-card);
   padding: 16px;
   display: grid;
@@ -314,8 +411,8 @@ label,
   display: block;
   border-radius: 2px;
   box-shadow:
-    0 1px 2px rgba(24, 37, 40, 0.18),
-    0 10px 34px rgba(24, 37, 40, 0.16);
+    0 1px 2px rgba(20, 20, 19, 0.18),
+    0 10px 34px rgba(20, 20, 19, 0.16);
   cursor: crosshair;
   touch-action: none;
   /* A long press on the sheet is a stroke, never a callout or a selection. */
@@ -363,11 +460,11 @@ label,
   position: absolute;
   left: 0;
   top: 0;
-  border: 1.5px solid rgba(0, 63, 72, 0.7);
+  border: 1.5px solid rgba(20, 20, 19, 0.7);
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
-  box-shadow: 0 0 0 1px rgba(254, 246, 233, 0.6);
+  box-shadow: 0 0 0 1px rgba(250, 249, 245, 0.6);
   will-change: transform;
 }
 .brush-ring.is-visible {
@@ -392,7 +489,7 @@ label,
   align-items: center;
   gap: 8px;
   padding: 8px 12px 8px 10px;
-  box-shadow: 0 6px 20px rgba(24, 37, 40, 0.22);
+  box-shadow: 0 6px 20px rgba(20, 20, 19, 0.22);
 }
 .focus-toggle svg {
   width: 18px;
@@ -405,7 +502,7 @@ label,
   line-height: 1;
   padding: 3px 5px;
   border-radius: 4px;
-  background: rgba(254, 246, 233, 0.22);
+  background: rgba(250, 249, 245, 0.22);
   color: inherit;
 }
 @media (max-width: 720px) {
@@ -449,7 +546,7 @@ body.is-focus:not(.is-phone) .action-bar {
   overflow-x: auto;
 }
 body.is-focus:not(.is-phone) .action-bar .btn {
-  box-shadow: 0 6px 24px rgba(24, 37, 40, 0.18);
+  box-shadow: 0 6px 24px rgba(20, 20, 19, 0.18);
   white-space: nowrap;
 }
 body.is-focus:not(.is-phone) .action-bar .btn:not(.btn-primary):not(.is-active) {
@@ -475,7 +572,7 @@ body.is-focus .focus-bar {
   z-index: 23;
 }
 body.is-focus .focus-bar .btn {
-  box-shadow: 0 6px 24px rgba(24, 37, 40, 0.18);
+  box-shadow: 0 6px 24px rgba(20, 20, 19, 0.18);
 }
 body.is-focus .focus-bar .btn:not(.is-active) {
   background: var(--bg);
@@ -498,7 +595,7 @@ body.is-focus .bench {
   background: var(--bg);
   border-top: 1px solid var(--rule);
   border-radius: 16px 16px 0 0;
-  box-shadow: 0 -12px 40px rgba(24, 37, 40, 0.16);
+  box-shadow: 0 -12px 40px rgba(20, 20, 19, 0.16);
   transform: translateY(100%);
   visibility: hidden;
   transition:
@@ -538,7 +635,7 @@ body.is-focus .app-footer {
 /* The lightbox: the desk goes dark so the lit sheet is the brightest thing
    on screen, same move as the calibration room in the eye-tracking rig. */
 body.is-backlit .easel {
-  background: #10282d;
+  background: #1f1e1d;
 }
 body.is-backlit .sheet {
   box-shadow: 0 0 60px rgba(255, 244, 214, 0.12);
@@ -567,16 +664,17 @@ body.is-backlit .sheet {
 }
 .box {
   background: var(--surface);
-  border: 1px solid var(--edge);
+  border: 1px solid transparent;
   border-radius: var(--r-card);
   padding: 16px;
   min-width: 0;
 }
 .box-title {
-  font-size: 12px;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   margin: 0 0 12px;
 }
@@ -650,8 +748,8 @@ details.box[open] > summary::after {
   transform: translateY(-1px);
 }
 .chip[aria-selected="true"] {
-  border-color: var(--accent-warm);
-  box-shadow: 0 0 0 2px var(--accent-warm);
+  border-color: var(--strong);
+  box-shadow: 0 0 0 2px var(--strong);
   transform: translateY(-1px) scale(1.06);
 }
 .chip-swatch {
@@ -676,7 +774,7 @@ details.box[open] > summary::after {
   border: 1px solid var(--edge);
   border-radius: var(--r-card);
   padding: 14px 16px 12px;
-  box-shadow: 0 10px 34px rgba(24, 37, 40, 0.14);
+  box-shadow: 0 10px 34px rgba(20, 20, 19, 0.14);
   animation: card-in var(--dur-micro) var(--ease-quint) both;
 }
 @keyframes card-in {
@@ -993,25 +1091,51 @@ details.box[open] > summary::after {
   text-wrap: balance;
 }
 
+/* The site's buttons: pills, sentence case, the grotesk at medium weight.
+ *
+ * The default .btn is the site's ghost: a paper pill with a hairline that
+ * darkens on hover. Paper, not --surface as on the site's open page, because
+ * half the buttons here sit on a --surface box of the bench and a
+ * surface-on-surface pill would be an outline floating on its own ground. The
+ * stroke is --line-2 for the same reason: it is the hairline that survives on
+ * --surface.
+ *
+ * Never the mono, and never tracked capitals: a button label is a thing you
+ * read to decide what to press. */
+
 .btn {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.005em;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  background: var(--bg);
   color: var(--strong);
-  border: 1.5px solid var(--edge);
+  border: 1px solid var(--line-2);
   border-radius: var(--r-chip);
-  padding: 10px 20px;
+  padding: 10px 18px;
   cursor: pointer;
+  text-decoration: none;
   transition:
     background-color 0.2s,
     border-color 0.2s,
     color 0.2s;
 }
 .btn:hover {
-  border-color: var(--strong);
+  background: var(--surface-2);
+  border-color: var(--rule);
 }
+/* Touch: every pill button clears a 40px target. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 40px;
+  }
+}
+/* The solid ink pill, the site's primary. */
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -1020,9 +1144,11 @@ details.box[open] > summary::after {
 .btn-primary:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+  color: var(--accent-contrast);
 }
 .btn-small {
   padding: 7px 14px;
+  font-size: 13px;
 }
 .btn.is-active,
 .paper-row [aria-checked="true"] {
@@ -1091,81 +1217,87 @@ body.is-xray .sheet {
 /* --- Bench notes + footer --------------------------------------------- */
 .app-footer {
   padding-top: 8px;
-  padding-bottom: 64px;
+  padding-bottom: 96px;
 }
-.notes-title {
-  max-width: 16ch;
-}
+/* Notes, set like a /lab/<slug> page's: a numbered title on the left, the
+   note in the reading serif on the right, a hairline between rows. */
 .notes {
-  margin: 32px 0 0;
+  margin: 0;
 }
 .note-row {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
-  padding: 18px 0;
-  border-top: 1px solid var(--line);
+  gap: 12px;
+  padding: 28px 0;
 }
-.note-row:last-child {
-  border-bottom: 1px solid var(--line);
+.note-row + .note-row {
+  border-top: 1px solid var(--line);
 }
 @media (min-width: 768px) {
   .note-row {
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: 40px;
+    padding: 36px 0;
   }
 }
 .note-row dt {
-  padding-top: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
 }
 .note-row dd {
   margin: 0;
   max-width: 64ch;
-  font-size: 16px;
-  line-height: 1.65;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.6;
   color: var(--body);
 }
-.note-row dd a {
-  color: var(--accent-ink);
-}
+
+/* The way back, as the site sets a page's related links: small paper pills
+   under the notes, aligned to the notes' reading column. */
 .footer-credit {
-  margin: 36px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0 0;
 }
-/* The site's arrow link: chase underline, arrow nudges on hover. */
-.arrow-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 15px;
-  color: var(--accent-ink);
-  text-decoration: none;
+@media (min-width: 768px) {
+  .footer-credit {
+    padding-left: calc((100% - 40px) / 3 + 40px);
+  }
 }
-.arrow-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  height: 1.5px;
-  width: 100%;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right center;
-  transition: transform var(--dur-struct) var(--ease-expo);
+/* On the open page, not on a plate, so these take the site's own ghost:
+   --surface under a hairline. */
+.footer-credit .btn {
+  background: var(--surface);
+  border-color: var(--line);
 }
-.arrow-link span {
+.footer-credit .btn:hover {
+  background: var(--surface-2);
+  border-color: var(--line-2);
+}
+.footer-credit .btn span {
   transition: transform 0.2s ease;
 }
 @media (hover: hover) and (pointer: fine) {
-  .arrow-link:hover::after {
-    transform: scaleX(1);
-    transform-origin: left center;
+  .footer-credit .btn:hover span {
+    transform: translateX(2px);
   }
-  .arrow-link:hover span {
-    transform: translateX(3px);
-  }
+}
+
+/* Links inside a note: the site's inline prose link, ink with a quiet
+   underline that darkens on hover. */
+.note-row dd a {
+  color: var(--strong);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+.note-row dd a:hover {
+  text-decoration-color: var(--strong);
 }
 
 .gl-error {
@@ -1239,7 +1371,7 @@ body.is-phone .sheet-bar {
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   background: var(--bg);
   border-top: 1px solid var(--rule);
-  box-shadow: 0 -8px 30px rgba(24, 37, 40, 0.12);
+  box-shadow: 0 -8px 30px rgba(20, 20, 19, 0.12);
 }
 body.is-focus .sheet-bar {
   display: none;
@@ -1340,7 +1472,7 @@ body.is-focus .sheet-bar {
     border-radius: 50%;
     background: var(--accent);
     border: 2px solid var(--bg);
-    box-shadow: 0 1px 4px rgba(24, 37, 40, 0.3);
+    box-shadow: 0 1px 4px rgba(20, 20, 19, 0.3);
   }
   .slider input[type="range"]::-moz-range-track {
     height: 6px;

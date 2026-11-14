@@ -21,9 +21,13 @@ play and the queue.
   leads the shelf and the home page's Lab stage.
 - **The number**: originally shipped as EXP-041 with EXP-040 unassigned;
   renumbered to EXP-040 on Ryan's call (2026-08-19), before the custom
-  domain went live, so the ledger stays dense. Everything in this repo
-  (page chrome, metadata, README, OG card) says EXP-040; only
-  `docs/session-log.md` keeps the old number, as history.
+  domain went live, so the ledger stays dense. Since 2026-11-14 the number
+  is off the page, the metadata, the README and the OG card, as it is on the
+  site (which dropped experiment numbers from its pages on 2026-11-03); it
+  lives in the site's data and in these docs.
+- **The look**: the site's current system ("Paper Lab", October 2026), with
+  `src/tokens.css` recopied whole on 2026-11-14. See the last entry in
+  `docs/session-log.md`.
 - **Local desktop**: `/Users/ryan/Developer/miniature-spork` on Ryan's Mac.
   Chrome is installed, the figure harness uses it (real GPU).
 
